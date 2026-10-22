@@ -1,0 +1,61 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { site } from '../site';
+---
+<Legal
+  title="Privacy"
+  description="No cookies, no accounts, and your searches never leave your browser. What this site keeps, and what it doesn't."
+  updated="2026-10-23"
+>
+  <p slot="short">
+    This site is made and run by me, Kieron Oates. I don't use cookies, there are no accounts, and what you type is
+    searched for on your own device. It never reaches me or anyone else.
+  </p>
+
+  <h2>What happens to what you type</h2>
+  <p>
+    Every page in the library is worked out by arithmetic, and that arithmetic runs in your browser. When you search,
+    your words are turned into a place on a shelf right there on your device. Nothing is sent to a server, and nothing
+    is saved.
+  </p>
+  <p>
+    The address bar changes as you go, so you can share where you are. Your words sit in the part of the address after
+    the <strong>#</strong>, which browsers keep to themselves and never send to a web server. If you share a link,
+    whoever opens it can read the words in it, so share it the way you would share the words themselves.
+  </p>
+
+  <h2>Cookies and storage</h2>
+  <p>
+    The site sets no cookies. It keeps one small note in your browser's own storage: that you've already seen the hint
+    about how to walk around, so it doesn't keep showing it. That note never leaves your device, and clearing
+    this site's data in your browser removes it.
+  </p>
+
+  <h2>Sound</h2>
+  <p>
+    Sound is off until you turn it on. The sounds are files served from this site, released into the public domain
+    (CC0) by their makers. The site never asks for your microphone or anything else on your device.
+  </p>
+
+  <h2>Hosting and visit counts</h2>
+  <p>
+    The site is served by Cloudflare Pages. Like any web host, Cloudflare handles the requests your browser makes to
+    load it, under its own <a href="https://www.cloudflare.com/privacypolicy/">privacy policy</a>.
+  </p>
+  <p>
+    To see how many people visit, I use Cloudflare Web Analytics. It doesn't set cookies and doesn't follow you from
+    one site to another. It tells me things like how many times a page was opened and which country visits came from,
+    never who you are.
+  </p>
+
+  <h2>No accounts, no emails</h2>
+  <p>
+    There is nothing to sign up for, so I hold no name, email address or password of yours, and there is no
+    information about you for me to hand over, sell or delete.
+  </p>
+
+  <h2>Changes and questions</h2>
+  <p>
+    If any of this changes, I'll update this page and the date at the top. If you have a question about it, you can find me on <a href={site.author.href}>GitHub</a>.
+  </p>
+</Legal>

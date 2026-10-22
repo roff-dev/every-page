@@ -12,9 +12,9 @@ const { sound = false } = Astro.props;
   <p class="signature">Made by <a href={site.author.href}>{site.author.name}</a></p>
   <nav aria-label="About this site">
     <ul>
-      <li><a href="/how-it-works">How it works</a></li>
-      <li><a href="/privacy">Privacy</a></li>
-      <li><a href="/terms">Terms</a></li>
+      <li><a href="/how-it-works/">How it works</a></li>
+      <li><a href="/privacy/">Privacy</a></li>
+      <li><a href="/terms/">Terms</a></li>
       {sound && (
         <li>
           <button class="sound" type="button" aria-pressed="false" data-sound>Sound <span aria-hidden="true" data-sound-state>off</span></button>

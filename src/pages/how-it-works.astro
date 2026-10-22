@@ -1,7 +1,7 @@
 ---
 import '@fontsource/courier-prime/400.css';
 import Base from '../layouts/Base.astro';
-import { site } from '../site';
+import TopBar from '../components/TopBar.astro';
 
 const sections = [
   ['every-page', 'A library with every page'],
@@ -21,10 +21,7 @@ const tinyPages = ['nnn', 'nno', 'non', 'noo', 'onn', 'ono', 'oon', 'ooo'];
   title="How it works"
   description="How one library can hold every page of 3,200 characters, and how your words are found in it: a shuffle that runs backwards."
 >
-  <header class="top">
-    <a class="wordmark" href="/">{site.name}</a>
-    <a class="back" href="/">Back to the library</a>
-  </header>
+  <TopBar />
 
   <div class="layout">
     <nav class="contents" aria-label="On this page">
@@ -273,28 +270,6 @@ const tinyPages = ['nnn', 'nno', 'non', 'noo', 'onn', 'ono', 'oon', 'ooo'];
 </script>
 
 <style>
-  .top {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-2);
-    padding: max(var(--space-2), env(safe-area-inset-top)) var(--gutter) 0;
-  }
-
-  .wordmark {
-    font-family: var(--font-display);
-    font-variation-settings: 'SOFT' 100;
-    font-size: var(--step-1);
-    text-decoration: none;
-    padding-block: 0.4rem;
-  }
-
-  .back {
-    font-size: var(--step--1);
-    color: var(--muted);
-    padding-block: 0.7rem;
-  }
-
   .layout {
     max-width: 78rem;
     margin: 0 auto;

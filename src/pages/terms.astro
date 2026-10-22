@@ -1,0 +1,56 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { site } from '../site';
+---
+<Legal
+  title="Terms"
+  description="The terms for using this library: it's free, every page is generated, and it comes as it is."
+  updated="2026-10-23"
+>
+  <p slot="short">
+    This site is made and run by me, Kieron Oates. You're welcome to use it, free, for as long as it's here. Every page
+    in it is generated rather than written, and the site comes as it is.
+  </p>
+
+  <h2>Using the library</h2>
+  <p>
+    You can search, read, wander and share links as much as you like. Please don't try to break the site or get in the
+    way of other people using it.
+  </p>
+
+  <h2>What's on the shelves</h2>
+  <p>
+    The library holds every possible page of 3,200 characters, so it holds every arrangement of words, including ones
+    that are wrong, rude or unpleasant. Nobody wrote them. They are worked out by arithmetic when you open them, and
+    finding something on a shelf doesn't mean I wrote it, chose it or agree with it.
+  </p>
+  <p>
+    Your searches and the links you make are yours. You're responsible for what you type and what you share, the same
+    as anywhere else.
+  </p>
+
+  <h2>As it is</h2>
+  <p>
+    I made this with care, but it comes without any promise that it will always work, be available, or stay the same.
+    I may change it or take it down. As far as the law allows, I'm not liable for any loss that comes from using it.
+    Nothing here limits anything the law doesn't let me limit, or takes away your rights as a consumer.
+  </p>
+
+  <h2>Credits and licences</h2>
+  <ul>
+    <li>The code is mine, open source under the MIT licence.</li>
+    <li>The library is Jorge Luis Borges's, from his 1941 story <cite>The Library of Babel</cite>, quoted on the how-it-works page with credit to the translator.</li>
+    <li>The typefaces are Fraunces, Newsreader and Courier Prime, under the SIL Open Font License.</li>
+    <li>The footsteps and book sounds are by Kenney, released as CC0.</li>
+  </ul>
+
+  <h2>The law</h2>
+  <p>
+    These terms are governed by the law of England and Wales.
+  </p>
+
+  <h2>Changes and questions</h2>
+  <p>
+    If these terms change, I'll update this page and the date at the top. If you have a question, you can find me on <a href={site.author.href}>GitHub</a>.
+  </p>
+</Legal>

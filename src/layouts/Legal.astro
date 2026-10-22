@@ -1,0 +1,99 @@
+---
+import Base from './Base.astro';
+import TopBar from '../components/TopBar.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  /** ISO date the text last changed */
+  updated: string;
+}
+
+const { title, description, updated } = Astro.props;
+const updatedLabel = new Date(updated).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+---
+<Base title={title} description={description}>
+  <TopBar />
+  <main class="legal">
+    <h1>{title}</h1>
+    <p class="updated">Last changed <time datetime={updated}>{updatedLabel}</time></p>
+    <div class="short">
+      <slot name="short" />
+    </div>
+    <slot />
+  </main>
+</Base>
+
+<style>
+  .legal {
+    max-width: calc(42.5rem + 2 * var(--gutter));
+    margin: 0 auto;
+    padding: var(--space-5) var(--gutter);
+    font-size: 1.125rem;
+    line-height: 1.65;
+  }
+
+  h1 {
+    font-size: clamp(2.8rem, 2rem + 4vw, 4.6rem);
+    font-weight: 380;
+    letter-spacing: -0.02em;
+    line-height: 0.98;
+  }
+
+  .updated {
+    margin-top: var(--space-2);
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+
+  /* the whole page in a few lines, lit like the explainer's quote */
+  .short {
+    margin-top: var(--space-4);
+    padding-left: var(--space-3);
+    border-left: 2px solid var(--lamplight);
+  }
+
+  .short :global(p) {
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step-1);
+    line-height: 1.4;
+    color: var(--cream);
+  }
+
+  .legal :global(h2) {
+    margin-top: var(--space-5);
+    font-size: var(--step-2);
+  }
+
+  .legal :global(h2 + p) {
+    margin-top: var(--space-2);
+  }
+
+  .legal > :global(p + p) {
+    margin-top: var(--space-2);
+  }
+
+  .legal > :global(p),
+  .legal :global(li) {
+    color: var(--muted);
+  }
+
+  .legal :global(ul) {
+    margin: var(--space-2) 0 0;
+    padding-left: 1.2rem;
+  }
+
+  .legal :global(li + li) {
+    margin-top: var(--space-1);
+  }
+
+  .legal :global(li::marker) {
+    color: var(--brass);
+  }
+
+  .legal :global(strong) {
+    font-weight: 600;
+    color: var(--cream);
+  }
+</style>
