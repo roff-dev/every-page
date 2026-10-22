@@ -1,6 +1,7 @@
 import { PerspectiveCamera, Scene, WebGLRenderer } from 'three';
 import { Library, yieldToMain } from './library';
 import { Director, type JourneyEvents, type JourneyTarget } from './director';
+import { Wanderer, type WanderEvents } from './wander';
 import { FOG } from './materials';
 import { FrameWatch, initialTier, lowerTier, TIERS, type Tier } from './quality';
 import { APOTHEM, FLOOR_HEIGHT, PITCH_X } from './dimensions';
@@ -17,10 +18,20 @@ export interface LibraryScene {
   shelve(): void;
   /** Let go of a journey's props and drift again. */
   release(): void;
+  /** Walk freely from wherever the camera is. */
+  wander(events: WanderEvents): void;
+  /** Walk to the next gallery (+1 east, -1 west) or up or down a floor. */
+  go(way: 'east' | 'west' | 'up' | 'down'): void;
+  /** Take a picked book off its shelf and open it; resolves with where it was. */
+  browse(instance: number): Promise<{ room: { x: number; y: number }; slot: number }>;
+  /** The room the camera is in, in whole rooms (library coordinates). */
+  room(): { x: number; y: number };
+  /** Which room and slot a picked book is, without taking it down. */
+  bookAt(instance: number): { room: { x: number; y: number }; slot: number };
   dispose(): void;
 }
 
-export type { JourneyTarget, JourneyEvents };
+export type { JourneyTarget, JourneyEvents, WanderEvents };
 
 const REBASE_DISTANCE = 400;
 
@@ -79,6 +90,12 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
   const library = await Library.create(tier);
   scene.add(library.group);
   const director = new Director(camera, scene, library, () => void renderer.compileAsync(scene, camera));
+  const wandererEvents: WanderEvents = {};
+  const wanderer = new Wanderer(camera, renderer.domElement, library, {
+    book: (p) => wandererEvents.book?.(p),
+    hover: (p, x, y) => wandererEvents.hover?.(p, x, y),
+    moved: () => wandererEvents.moved?.(),
+  });
   container.appendChild(renderer.domElement);
   renderer.domElement.style.cssText = 'display:block;width:100%;height:100%';
   resize();
@@ -126,6 +143,7 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
     hud?.(frameMs, tier.name);
     const dt = Math.min(0.05, Math.max(0, frameMs / 1000));
     if (director.active || director.standing) director.update(dt, now / 1000);
+    else if (wanderer.active) wanderer.update(dt);
     else idleView()(camera, reduced.matches ? 0 : now);
     if (!director.active) rebase();
     library.follow(camera.position.x, camera.position.y);
@@ -134,7 +152,7 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
 
   const observer = new ResizeObserver(resize);
   observer.observe(container);
-  if (import.meta.env.DEV) Object.assign(window, { __scene: { renderer, camera, tier: () => tier } });
+  if (import.meta.env.DEV) Object.assign(window, { __scene: { renderer, camera, library, tier: () => tier } });
 
   return {
     canvas: renderer.domElement,
@@ -144,6 +162,22 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
     reveal: () => director.reveal(),
     shelve: () => director.shelve(),
     release: () => director.clear(),
+    wander(events) {
+      Object.assign(wandererEvents, events);
+      director.clear();
+      wanderer.start();
+    },
+    go(way) {
+      if (way === 'east' || way === 'west') wanderer.east(way === 'east' ? 1 : -1);
+      else wanderer.floor(way === 'up' ? 1 : -1);
+    },
+    browse: (instance) => director.browse(instance),
+    // from the camera itself, so it's right even before the rooms have re-centred this frame
+    room: () => ({
+      x: Math.round(camera.position.x / PITCH_X) + library.roomOffset.x,
+      y: Math.floor((camera.position.y + 0.15) / FLOOR_HEIGHT) + library.roomOffset.y,
+    }),
+    bookAt: (instance) => library.bookAt(instance),
     dispose() {
       renderer.setAnimationLoop(null);
       observer.disconnect();

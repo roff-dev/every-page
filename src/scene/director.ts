@@ -2,6 +2,7 @@ import { Matrix4, PerspectiveCamera, Scene, Vector3 } from 'three';
 import { ComfortLook, buildRoute, planPath, planPathLasting, standPoint, TRAVEL, WALK, type Plan, type Route } from './journey';
 import { Halo, Trail, clearLamps, lightLamps, routeLamps } from './guide';
 import { ReadingBook } from './book';
+import { spineColour } from './colour';
 import { bookSlots, sideFrame } from './room';
 import { FLOOR_HEIGHT, PITCH_X, SHELVED_SIDES } from './dimensions';
 import type { Library } from './library';
@@ -132,6 +133,23 @@ export class Director {
     if (!this.step || this.step.kind === 'stand') return;
     this.events.veil?.(0);
     this.arriveAtShelf();
+  }
+
+  /** Take any book the visitor picked off its shelf and open it. */
+  async browse(instance: number): Promise<{ room: { x: number; y: number }; slot: number }> {
+    const { room, slot } = this.library.bookAt(instance);
+    const off = this.library.roomOffset;
+    this.clear();
+    this.events = {};
+    this.reduced = false;
+    this.slotWorld.makeTranslation((room.x - off.x) * PITCH_X, (room.y - off.y) * FLOOR_HEIGHT, 0).multiply(slots[slot]!);
+    this.inward.copy(sideFrame(SHELVED_SIDES[Math.floor(slot / 160)]!).inward);
+    const m = this.library.bookMaterial.uniforms;
+    m.uTargetBook!.value.setFromMatrixPosition(this.slotWorld);
+    m.uTargetColour!.value.set(...spineColour(room, slot));
+    this.step = { kind: 'stand' };
+    await this.reveal();
+    return { room, slot };
   }
 
   /** Take the volume off the shelf, bring it to the reader and open it. Resolves once it's open. */

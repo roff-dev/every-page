@@ -35,6 +35,7 @@ import Base from '../layouts/Base.astro';
       <div class="card-actions">
         <button class="find" type="submit">Find it</button>
         <button class="random" type="button" id="random">Open a random volume</button>
+        <button class="random" type="button" id="wander-start">Wander the galleries</button>
         <span class="counter" data-counter hidden></span>
       </div>
     </form>
@@ -44,6 +45,25 @@ import Base from '../layouts/Base.astro';
       <p class="distance" data-distance></p>
       <button class="skip" type="button" data-skip hidden>Skip</button>
       <div class="veil" data-veil aria-hidden="true"></div>
+    </section>
+
+    <section class="wander" id="wander" aria-label="Wandering the library">
+      <div class="plaque">
+        <p><span class="plaque-label">Hexagon</span> <span class="plaque-hex" data-place></span></p>
+        <button class="text-button" type="button" data-share-place>Share this place</button>
+      </div>
+      <p class="hint" data-hint hidden></p>
+      <nav class="ways" aria-label="Ways on">
+        <button type="button" data-way="west"><span aria-hidden="true">←</span> West gallery</button>
+        <button type="button" data-way="east">East gallery <span aria-hidden="true">→</span></button>
+        <button type="button" data-way="up"><span aria-hidden="true">↑</span> Stairs up</button>
+        <button type="button" data-way="down"><span aria-hidden="true">↓</span> Stairs down</button>
+      </nav>
+      <div class="wander-actions">
+        <button class="round" type="button" data-search>Search</button>
+        <button class="round" type="button" data-random>Random</button>
+      </div>
+      <p class="spine-label" data-spine hidden></p>
     </section>
   </main>
 </Base>
@@ -336,6 +356,149 @@ import Base from '../layouts/Base.astro';
     inset: 0;
     background: var(--night);
     opacity: 0;
+  }
+
+  .wander {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 500ms var(--ease-settle), visibility 0s 500ms;
+  }
+
+  :global(body[data-state='wander']) .wander {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 500ms var(--ease-settle);
+  }
+
+  :global(body[data-state='wander']) .masthead,
+  :global(body[data-state='wander']) .card {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  :global(body[data-state='wander']) .scene::after {
+    opacity: 0.25;
+  }
+
+  :global(body[data-state='wander']) {
+    overflow: hidden;
+  }
+
+  :global(body[data-state='wander'] .scene canvas) {
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .wander > * {
+    pointer-events: auto;
+  }
+
+  .plaque {
+    position: absolute;
+    top: max(var(--space-2), env(safe-area-inset-top));
+    left: var(--gutter);
+    padding: 0.55rem 0.9rem;
+    border: 1px solid rgb(185 138 94 / 0.6);
+    border-radius: var(--radius-card);
+    background: var(--scrim);
+    font-size: var(--step--1);
+  }
+
+  .plaque-label {
+    color: var(--muted);
+  }
+
+  .plaque-hex {
+    font-family: var(--font-page);
+  }
+
+  .text-button {
+    min-height: 2.75rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--cream);
+    text-decoration: underline;
+    text-decoration-color: var(--brass);
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+  }
+
+  .hint {
+    position: absolute;
+    left: 50%;
+    top: 22%;
+    translate: -50% 0;
+    width: min(100% - 2 * var(--gutter), 30rem);
+    padding: 0.7rem 1.1rem;
+    border-radius: 999px;
+    background: var(--scrim);
+    text-align: center;
+    font-size: var(--step--1);
+  }
+
+  .ways {
+    position: absolute;
+    left: var(--gutter);
+    bottom: max(var(--space-2), env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: 0.4rem;
+  }
+
+  .ways button,
+  .round {
+    min-height: 2.75rem;
+    padding: 0 0.9rem;
+    border: 1px solid rgb(185 138 94 / 0.7);
+    border-radius: 999px;
+    background: var(--scrim);
+    color: var(--cream);
+    font-size: var(--step--1);
+    cursor: pointer;
+  }
+
+  .ways button:hover,
+  .round:hover {
+    border-color: var(--lamplight);
+  }
+
+  .wander-actions {
+    position: absolute;
+    right: var(--gutter);
+    bottom: max(var(--space-2), env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .round {
+    width: 4.25rem;
+    height: 4.25rem;
+    padding: 0;
+    background: var(--night);
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+  }
+
+  .spine-label {
+    position: fixed;
+    left: 0;
+    top: 0;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--brass);
+    border-radius: 0.3rem;
+    background: var(--night);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--step--1);
+    pointer-events: none;
+    white-space: nowrap;
   }
 
   .card-actions {

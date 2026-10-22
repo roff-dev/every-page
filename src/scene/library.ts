@@ -34,6 +34,9 @@ export class Library {
   centreBookBase = 0;
   private centre = new Vector2(Number.NaN, Number.NaN);
   private parts: { dispose(): void }[] = [];
+  private bookRoomOffsets: [number, number][] = [];
+  /** Whole rooms between world coordinates and the library's own (see setRoomOffset) */
+  readonly roomOffset = new Vector2();
 
   private constructor(private tier: Tier) {}
 
@@ -58,6 +61,7 @@ export class Library {
     const { roomsX: nx, roomsY: ny, bookRoomsY: by, glow } = this.tier;
     const near: Matrix4[] = [], far: Matrix4[] = [], lamps: Matrix4[] = [], glowPositions: number[] = [];
     const bookRooms: Matrix4[] = [];
+    const offsets: [number, number][] = [];
     for (let dy = -ny; dy <= ny; dy++) {
       for (let dx = -nx; dx <= nx; dx++) {
         const m = new Matrix4().makeTranslation(dx * PITCH_X, dy * FLOOR_HEIGHT, 0);
@@ -66,6 +70,7 @@ export class Library {
         if (close) {
           if (dx === 0 && dy === 0) this.centreBookBase = bookRooms.length * BOOKS_PER_ROOM;
           bookRooms.push(m);
+          offsets.push([dx, dy]);
         }
         for (const z of [LAMP_Z, -LAMP_Z]) {
           lamps.push(new Matrix4().makeTranslation(dx * PITCH_X, dy * FLOOR_HEIGHT + LAMP_HEIGHT, z));
@@ -100,6 +105,7 @@ export class Library {
       added.push(points);
       this.parts.push(g);
     }
+    this.bookRoomOffsets = offsets;
     this.group.remove(...replacing);
     this.group.add(...added);
   }
@@ -115,7 +121,22 @@ export class Library {
   }
 
   /** Whole rooms between world coordinates and the library's own, so a floating-origin shift keeps every book the same. */
+  /** Which room (in the library's own whole-room coordinates) and slot a book instance is. */
+  bookAt(instance: number): { room: { x: number; y: number }; slot: number } {
+    const [dx, dy] = this.bookRoomOffsets[Math.floor(instance / BOOKS_PER_ROOM)]!;
+    return {
+      room: { x: this.centre.x + dx + this.roomOffset.x, y: this.centre.y + dy + this.roomOffset.y },
+      slot: instance % BOOKS_PER_ROOM,
+    };
+  }
+
+  /** The room the camera is in, in the library's own whole-room coordinates. */
+  get room() {
+    return { x: this.centre.x + this.roomOffset.x, y: this.centre.y + this.roomOffset.y };
+  }
+
   setRoomOffset(x: number, y: number) {
+    this.roomOffset.set(x, y);
     this.shellMaterial.uniforms.uRoomOffset!.value.set(x, y);
     this.bookMaterial.uniforms.uRoomOffset!.value.set(x, y);
   }

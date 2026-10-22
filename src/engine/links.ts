@@ -11,15 +11,23 @@ export type Anchor =
   | { kind: 'random'; seed: bigint }
   | { kind: 'address'; location: Location };
 
+/** Rooms walked from the anchor's hexagon, and optionally a book and page in the room reached. */
+export interface Move {
+  east: number;
+  up: number;
+  book?: { wall: number; shelf: number; volume: number; page: number };
+}
+
 export interface Link {
   anchor: Anchor;
-  /** Pages from the anchor's page, in library order. */
+  /** Pages from the anchor's page (or the moved-to page), in library order. */
   offset: bigint;
+  move?: Move;
 }
 
 const SPACE = '_'; // not in the alphabet, so it stands for a space unambiguously
 
-export function formatLink({ anchor, offset }: Link): string {
+export function formatLink({ anchor, offset, move }: Link): string {
   let hash: string;
   if (anchor.kind === 'query') {
     hash = 'q=' + anchor.text.replaceAll(' ', SPACE);
@@ -30,6 +38,10 @@ export function formatLink({ anchor, offset }: Link): string {
     const { hexagon, wall, shelf, volume, page } = anchor.location;
     hash = `a=${hexagon.toString(36)}.${wall + 1}.${shelf + 1}.${volume + 1}.${page + 1}`;
   }
+  if (move) {
+    hash += `&m=${move.east}.${move.up}`;
+    if (move.book) hash += `.${move.book.wall + 1}.${move.book.shelf + 1}.${move.book.volume + 1}.${move.book.page + 1}`;
+  }
   if (offset) hash += `&d=${offset}`;
   return '#' + hash;
 }
@@ -39,6 +51,9 @@ export function parseLink(hash: string): Link | null {
   const params = new URLSearchParams(hash.replace(/^#/, ''));
   const offset = parseOffset(params.get('d'));
   if (offset === null) return null;
+  const move = parseMove(params.get('m'));
+  if (move === null) return null;
+  const extra = move ? { move } : {};
 
   const q = params.get('q');
   if (q !== null) {
@@ -48,7 +63,7 @@ export function parseLink(hash: string): Link | null {
     const k = params.get('k');
     const variant = k === null ? 0 : Number(k);
     if (!Number.isSafeInteger(variant) || variant < 0) return null;
-    return { anchor: { kind: 'query', text, variant }, offset };
+    return { anchor: { kind: 'query', text, variant }, offset, ...extra };
   }
 
   const r = params.get('r');
@@ -56,7 +71,7 @@ export function parseLink(hash: string): Link | null {
     if (!/^[0-9a-z]{1,13}$/.test(r)) return null;
     const seed = parseBase36(r);
     if (seed === null || seed >= 1n << 64n) return null;
-    return { anchor: { kind: 'random', seed }, offset };
+    return { anchor: { kind: 'random', seed }, offset, ...extra };
   }
 
   const a = params.get('a');
@@ -67,9 +82,22 @@ export function parseLink(hash: string): Link | null {
     if (hexagon === null || hexagon >= HEXAGON_COUNT) return null;
     const location = { hexagon, wall: +m[2]! - 1, shelf: +m[3]! - 1, volume: +m[4]! - 1, page: +m[5]! - 1 };
     if (!exists(location)) return null;
-    return { anchor: { kind: 'address', location }, offset };
+    return { anchor: { kind: 'address', location }, offset, ...extra };
   }
   return null;
+}
+
+/** undefined: no move given; null: malformed. */
+function parseMove(m: string | null): Move | undefined | null {
+  if (m === null) return undefined;
+  const parts = m.replace(/ /g, '+').split('.');
+  if (parts.length !== 2 && parts.length !== 6) return null;
+  if (!parts.every((p) => /^[+-]?\d{1,6}$/.test(p))) return null;
+  const [east, up, wall, shelf, volume, page] = parts.map(Number) as number[];
+  if (parts.length === 2) return { east: east!, up: up! };
+  const book = { wall: wall! - 1, shelf: shelf! - 1, volume: volume! - 1, page: page! - 1 };
+  if (book.wall < 0 || book.wall > 3 || book.shelf < 0 || book.shelf > 4 || book.volume < 0 || book.volume > 31 || book.page < 0 || book.page > 409) return null;
+  return { east: east!, up: up!, book };
 }
 
 function parseOffset(d: string | null): bigint | null {
