@@ -2,8 +2,9 @@ import { searchCard } from './searchCard';
 import { catalogue } from './catalogue';
 import { journeyUi, targetFor } from './journeyUi';
 import { wanderUi } from './wanderUi';
-import { formatLink, type Anchor, type Move } from '../engine/links';
-import { fromIndex, neighbour, toIndex, type Location } from '../engine/location';
+import { formatLink, parseLink, type Anchor, type Link, type Move } from '../engine/links';
+import { exists, fromIndex, neighbour, toIndex, type Location } from '../engine/location';
+import { PAGE_COUNT } from '../engine/constants';
 import type { LibraryScene } from '../scene';
 
 const supportsWebGL2 = () => {
@@ -98,8 +99,23 @@ export function boot() {
     });
   }
 
+  interface Arrival {
+    /** A shared link: no flight, just the last of the walk */
+    short?: boolean;
+    /** Galleries and floors from the anchor's hexagon to the book's, and the book itself */
+    move?: Move;
+    /** Pages from the anchor's (or moved-to) page that the link opened at */
+    offset?: bigint;
+  }
+
   /** Fly to a page, walk to its shelf, take the book down and open it. */
-  async function travel(anchor: Anchor, index: bigint, highlight: { offset: number; length: number } | null, elsewhere: (() => void) | null) {
+  async function travel(
+    anchor: Anchor,
+    index: bigint,
+    highlight: { offset: number; length: number } | null,
+    elsewhere: (() => void) | null,
+    { short = false, move, offset = 0n }: Arrival = {},
+  ) {
     const s = await sceneReady;
     if (!s) return;
     reading?.close();
@@ -107,11 +123,51 @@ export function boot() {
     const location = fromIndex(index);
     position ??= await landing(s);
     const here = moveFrom(position, s.room()).hexagon;
-    await s.journey(targetFor(location), journey.begin(here, location));
-    position = { anchor, hexagon: location.hexagon, room: s.room() };
+    const target = targetFor(location);
+    await s.journey(short ? { ...target, rooms: 1, floors: 0 } : target, journey.begin(here, location, short), short);
+    const room = s.room();
+    position = move
+      ? { anchor, hexagon: neighbour(location.hexagon, -move.east, -move.up), room: { x: room.x - move.east, y: room.y - move.up } }
+      : { anchor, hexagon: location.hexagon, room };
     await s.reveal();
     journey.end();
-    await read(index, (offset) => formatLink({ anchor, offset }), highlight, elsewhere);
+    await read(index, (o) => formatLink({ anchor, offset: offset + o, ...(move ? { move } : {}) }), highlight, elsewhere);
+  }
+
+  /** Open a shared link: find its anchor, follow its move and page offset, and arrive there. */
+  async function openLink({ anchor, offset, move }: Link) {
+    let anchorIndex: bigint;
+    let highlight: { offset: number; length: number } | null = null;
+    let elsewhere: (() => void) | null = null;
+    if (anchor.kind === 'query') {
+      const found = await catalogue.search(anchor.text, anchor.variant);
+      anchorIndex = found.index;
+      highlight = { offset: found.offset, length: anchor.text.length };
+      elsewhere = () => void find(anchor.text, anchor.variant + 1);
+    } else if (anchor.kind === 'random') anchorIndex = await catalogue.randomIndex(anchor.seed);
+    else anchorIndex = toIndex(anchor.location);
+
+    const anchorHexagon = fromIndex(anchorIndex).hexagon;
+    if (move && !move.book) return arriveAt(anchor, anchorHexagon, move);
+    const book: Location | null = move?.book ? { hexagon: neighbour(anchorHexagon, move.east, move.up), ...move.book } : null;
+    if (book && !exists(book)) return travel(anchor, anchorIndex, highlight, elsewhere, { short: true });
+    const base = book ? toIndex(book) : anchorIndex;
+    const index = base + offset;
+    if (index < 0n || index >= PAGE_COUNT) return travel(anchor, base, book ? null : highlight, book ? null : elsewhere, { short: true, move });
+    // your words are only on the anchor's own page
+    const onAnchorPage = !book && offset === 0n;
+    await travel(anchor, index, onAnchorPage ? highlight : null, book ? null : elsewhere, { short: true, move, offset });
+  }
+
+  /** A shared place with no book: stand in that gallery and wander. */
+  async function arriveAt(anchor: Anchor, hexagon: bigint, move: Move) {
+    const s = await sceneReady;
+    if (!s) return;
+    reading?.close();
+    const room = s.room();
+    position = { anchor, hexagon, room: { x: room.x - move.east, y: room.y - move.up } };
+    history.replaceState(null, '', formatLink({ anchor, offset: 0n, move }));
+    await startWandering();
   }
 
   async function find(text: string, variant: number) {
@@ -184,6 +240,12 @@ export function boot() {
   }
 
   const card = searchCard(form, (text) => void find(text, 0));
+  const follow = () => {
+    const link = parseLink(location.hash);
+    if (link) void openLink(link).catch(() => undefined);
+  };
+  follow();
+  addEventListener('hashchange', follow);
   document.getElementById('random')!.addEventListener('click', () => void openRandom());
   document.getElementById('wander-start')!.addEventListener('click', () => void startWandering());
 }

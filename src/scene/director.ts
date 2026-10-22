@@ -35,6 +35,9 @@ export interface JourneyEvents {
 const slots = bookSlots();
 const TARGET_HEIGHT = 0.47;
 const TRAVEL_SECONDS = 8;
+/** A shared link skips the flight: the last stretch of the walk, fading in from the veil. */
+const SHORT_WALK_SECONDS = 2.2;
+const FADE_IN_SECONDS = 0.6;
 
 type Step =
   | { kind: 'travel'; plan: Plan; t: number }
@@ -64,6 +67,7 @@ export class Director {
   private slotWorld = new Matrix4();
   private inward = new Vector3();
   private revealed: (() => void) | null = null;
+  private fade = 0;
 
   constructor(
     private readonly camera: PerspectiveCamera,
@@ -86,7 +90,7 @@ export class Director {
     return this.book;
   }
 
-  start(target: JourneyTarget, events: JourneyEvents, reduced: boolean): Promise<void> {
+  start(target: JourneyTarget, events: JourneyEvents, reduced: boolean, short = false): Promise<void> {
     this.clear();
     this.events = events;
     this.reduced = reduced;
@@ -121,16 +125,35 @@ export class Director {
     this.lamps = routeLamps((room.x - Math.sign(target.east || 1)) * PITCH_X, room.x * PITCH_X, floorY);
 
     this.look.from(this.camera);
-    this.step = reduced
-      ? { kind: 'veil', t: 0, to: 'out' }
-      : { kind: 'travel', plan: planPathLasting(this.route.travel, TRAVEL, TRAVEL_SECONDS), t: 0 };
-    this.events.phase?.(reduced ? 'guide' : 'travel');
+    if (short) {
+      this.events.veil?.(1);
+      if (reduced) {
+        this.placeAtShelf();
+        this.step = { kind: 'veil', t: 0, to: 'in' };
+      } else {
+        const plan = planPath(this.route.walk, WALK);
+        const t = Math.max(0, plan.duration - SHORT_WALK_SECONDS);
+        this.camera.position.copy(plan.curve.getPointAt(plan.at(t).u));
+        this.camera.lookAt(this.book);
+        this.look.from(this.camera);
+        this.guideTime = 1;
+        this.fade = FADE_IN_SECONDS;
+        this.step = { kind: 'guide', plan, t };
+      }
+      this.events.phase?.('guide');
+    } else {
+      this.step = reduced
+        ? { kind: 'veil', t: 0, to: 'out' }
+        : { kind: 'travel', plan: planPathLasting(this.route.travel, TRAVEL, TRAVEL_SECONDS), t: 0 };
+      this.events.phase?.(reduced ? 'guide' : 'travel');
+    }
     return new Promise((r) => (this.resolve = r));
   }
 
   /** Jump to the shelf, with the trail drawn and the lamps lit. */
   skip() {
     if (!this.step || this.step.kind === 'stand') return;
+    this.fade = 0;
     this.events.veil?.(0);
     this.arriveAtShelf();
   }
@@ -189,11 +212,16 @@ export class Director {
     this.library.bookMaterial.uniforms.uTargetBook!.value.set(1e6, 0, 0);
     this.step = null;
     this.guideTime = 0;
+    this.fade = 0;
   }
 
   update(dt: number, seconds: number) {
     const step = this.step;
     if (!step) return;
+    if (this.fade > 0) {
+      this.fade = Math.max(0, this.fade - dt);
+      this.events.veil?.(this.fade / FADE_IN_SECONDS);
+    }
     this.trail?.tick(seconds);
     if (step.kind === 'stand') this.lightGuide(dt);
     // once the volume is off the shelf, its glow and halo have done their job

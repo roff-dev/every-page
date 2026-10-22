@@ -38,7 +38,8 @@ function scientific(n: bigint, exponentShift = 0): string {
 }
 
 export interface JourneyUi {
-  begin(from: bigint, to: Location): JourneyEvents;
+  /** short: a shared link's arrival, with no flight to narrate */
+  begin(from: bigint, to: Location, short?: boolean): JourneyEvents;
   end(): void;
 }
 
@@ -64,13 +65,13 @@ export function journeyUi(root: HTMLElement, onSkip: () => void): JourneyUi {
   };
 
   return {
-    begin(from, to) {
+    begin(from, to, short = false) {
       const { floors, galleries } = distance(from, to.hexagon);
       const floorDigits = (floors < 0n ? -floors : floors).toString().length;
       const direction = floors < 0n ? 'down' : 'up';
       document.body.dataset.state = 'journey';
       skip.hidden = false;
-      say('Every page that could be written is already here. Yours is far.');
+      if (!short) say('Every page that could be written is already here. Yours is far.');
       let lastShift = -1;
       return {
         phase(phase) {

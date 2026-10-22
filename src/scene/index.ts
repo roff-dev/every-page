@@ -9,8 +9,8 @@ import { APOTHEM, FLOOR_HEIGHT, PITCH_X } from './dimensions';
 export interface LibraryScene {
   readonly canvas: HTMLCanvasElement;
   readonly tier: () => Tier;
-  /** Fly to a book and walk to its shelf; resolves when standing in front of it. */
-  journey(target: JourneyTarget, events: JourneyEvents): Promise<void>;
+  /** Fly to a book and walk to its shelf (or, short, just the last of the walk); resolves when standing in front of it. */
+  journey(target: JourneyTarget, events: JourneyEvents, short?: boolean): Promise<void>;
   skip(): void;
   /** Take the volume off the shelf and open it; resolves once it's open. */
   reveal(): Promise<void>;
@@ -157,7 +157,7 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
   return {
     canvas: renderer.domElement,
     tier: () => tier,
-    journey: (target, events) => director.start(target, events, reduced.matches),
+    journey: (target, events, short) => director.start(target, events, reduced.matches, short),
     skip: () => director.skip(),
     reveal: () => director.reveal(),
     shelve: () => director.shelve(),
