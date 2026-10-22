@@ -170,14 +170,17 @@ export function boot() {
   async function sharePlace() {
     const s = await sceneReady;
     if (!s || !position) return;
-    const url = new URL(formatLink({ anchor: position.anchor, offset: 0n, move: moveFrom(position, s.room()).move }), location.href).href;
+    const url = location.origin + location.pathname + formatLink({ anchor: position.anchor, offset: 0n, move: moveFrom(position, s.room()).move });
     if (navigator.share) {
       try {
         await navigator.share({ title: document.title, url });
       } catch {
         // dismissed
       }
-    } else await navigator.clipboard.writeText(url);
+    } else {
+      await navigator.clipboard.writeText(url);
+      wander.linkCopied();
+    }
   }
 
   const card = searchCard(form, (text) => void find(text, 0));

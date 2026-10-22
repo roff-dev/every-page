@@ -3,6 +3,7 @@ export interface WanderUi {
   hide(): void;
   setPlace(hexagon: bigint): void;
   hover(title: string | null, x: number, y: number): void;
+  linkCopied(): void;
 }
 
 export interface WanderActions {
@@ -24,6 +25,8 @@ export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
   root.querySelector('[data-search]')!.addEventListener('click', actions.search);
   root.querySelector('[data-random]')!.addEventListener('click', actions.random);
   root.querySelector('[data-share-place]')!.addEventListener('click', actions.share);
+  const shareLabel = root.querySelector<HTMLElement>('[data-share-place] span')!;
+  let shareReset = 0;
 
   const coarse = matchMedia('(pointer: coarse)').matches;
   hint.textContent = coarse
@@ -56,6 +59,11 @@ export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
       if (title === null) return;
       label.textContent = title;
       label.style.translate = `${Math.round(x + 14)}px ${Math.round(y - 30)}px`;
+    },
+    linkCopied() {
+      shareLabel.textContent = 'Link copied';
+      clearTimeout(shareReset);
+      shareReset = window.setTimeout(() => (shareLabel.textContent = 'Share this place'), 2200);
     },
   };
 }

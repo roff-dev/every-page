@@ -91,7 +91,7 @@ export function openReader(opts: ReaderOptions): Reader {
       say('Page copied');
     }),
     button('Share', 'link', async () => {
-      const url = location.href;
+      const url = location.origin + location.pathname + location.hash;
       if (navigator.share) {
         try {
           await navigator.share({ title: document.title, url });
