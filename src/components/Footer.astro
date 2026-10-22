@@ -1,0 +1,45 @@
+---
+import { site } from '../site';
+---
+<footer class="footer">
+  <p class="signature">Made by <a href={site.author.href}>{site.author.name}</a></p>
+  <nav aria-label="About this site">
+    <ul>
+      <li><a href="/how-it-works">How it works</a></li>
+      <li><a href="/privacy">Privacy</a></li>
+      <li><a href="/terms">Terms</a></li>
+    </ul>
+  </nav>
+</footer>
+
+<style>
+  .footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-2) var(--gutter) max(var(--space-2), env(safe-area-inset-bottom));
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+
+  .signature {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-variation-settings: 'SOFT' 100;
+  }
+
+  ul {
+    display: flex;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  a {
+    display: inline-block;
+    padding-block: 0.6rem;
+  }
+</style>
