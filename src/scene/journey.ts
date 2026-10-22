@@ -67,6 +67,23 @@ export function planPath(points: Vector3[], { vMax, aLat, aLong, vEnd }: Limits)
   };
 }
 
+/**
+ * Plans a path that lasts about `seconds`, by finding the top speed that gives that duration.
+ * Cornering and braking limits stay fixed, so comfort never trades off against timing.
+ */
+export function planPathLasting(points: Vector3[], limits: Limits, seconds: number, vRange: [number, number] = [8, 90]): Plan {
+  let [lo, hi] = vRange;
+  let plan = planPath(points, { ...limits, vMax: hi });
+  if (plan.duration > seconds) return plan; // as fast as allowed
+  for (let i = 0; i < 14; i++) {
+    const mid = (lo + hi) / 2;
+    plan = planPath(points, { ...limits, vMax: mid });
+    if (plan.duration > seconds) lo = mid;
+    else hi = mid;
+  }
+  return planPath(points, { ...limits, vMax: hi });
+}
+
 /** A camera that never rolls: horizontal heading and clamped pitch, both eased. */
 export class ComfortLook {
   private yaw = 0;

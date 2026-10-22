@@ -1,5 +1,5 @@
 import { Matrix4, PerspectiveCamera, Scene, Vector3 } from 'three';
-import { ComfortLook, buildRoute, planPath, standPoint, TRAVEL, WALK, type Plan, type Route } from './journey';
+import { ComfortLook, buildRoute, planPath, planPathLasting, standPoint, TRAVEL, WALK, type Plan, type Route } from './journey';
 import { Halo, Trail, clearLamps, lightLamps, routeLamps } from './guide';
 import { bookSlots, sideFrame } from './room';
 import { FLOOR_HEIGHT, PITCH_X, SHELVED_SIDES } from './dimensions';
@@ -30,6 +30,7 @@ export interface JourneyEvents {
 
 const slots = bookSlots();
 const TARGET_HEIGHT = 0.47;
+const TRAVEL_SECONDS = 8;
 
 type Step =
   | { kind: 'travel'; plan: Plan; t: number }
@@ -111,7 +112,7 @@ export class Director {
     this.look.from(this.camera);
     this.step = reduced
       ? { kind: 'veil', t: 0, to: 'out' }
-      : { kind: 'travel', plan: planPath(this.route.travel, TRAVEL), t: 0 };
+      : { kind: 'travel', plan: planPathLasting(this.route.travel, TRAVEL, TRAVEL_SECONDS), t: 0 };
     this.events.phase?.(reduced ? 'guide' : 'travel');
     return new Promise((r) => (this.resolve = r));
   }
