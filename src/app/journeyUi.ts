@@ -42,6 +42,8 @@ export interface JourneyUi {
   end(): void;
 }
 
+const pageNumber = (p: number, page: number) => Math.max(1, Math.round(1 + p * page));
+
 export function journeyUi(root: HTMLElement, onSkip: () => void): JourneyUi {
   const caption = root.querySelector<HTMLElement>('[data-caption]')!;
   const distanceLine = root.querySelector<HTMLElement>('[data-distance]')!;
@@ -80,6 +82,8 @@ export function journeyUi(root: HTMLElement, onSkip: () => void): JourneyUi {
             say(`Follow the light. Wall ${to.wall + 1}, shelf ${to.shelf + 1}, the ${ordinal(to.volume + 1)} volume.`);
           } else if (phase === 'stand') {
             skip.hidden = true;
+          } else if (phase === 'pull') {
+            say('');
           }
         },
         progress(p) {
@@ -93,6 +97,9 @@ export function journeyUi(root: HTMLElement, onSkip: () => void): JourneyUi {
         },
         veil(opacity) {
           veil.style.opacity = String(opacity);
+        },
+        riffle(p) {
+          distanceLine.textContent = `Page ${pageNumber(p, to.page)}`;
         },
       };
     },

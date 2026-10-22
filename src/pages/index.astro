@@ -244,7 +244,9 @@ import Base from '../layouts/Base.astro';
   }
 
   :global(body[data-state='journey']) .masthead,
-  :global(body[data-state='journey']) .card {
+  :global(body[data-state='journey']) .card,
+  :global(body[data-state='reading']) .masthead,
+  :global(body[data-state='reading']) .card {
     opacity: 0;
     translate: 0 1.5rem;
     pointer-events: none;
@@ -252,7 +254,8 @@ import Base from '../layouts/Base.astro';
     transition: opacity 600ms var(--ease-settle), translate 600ms var(--ease-settle), visibility 0s 600ms;
   }
 
-  :global(body[data-state='journey']) .scene::after {
+  :global(body[data-state='journey']) .scene::after,
+  :global(body[data-state='reading']) .scene::after {
     opacity: 0.35;
   }
 
