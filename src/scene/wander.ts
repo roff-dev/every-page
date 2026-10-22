@@ -60,6 +60,11 @@ export class Wanderer {
     const p = this.camera.position;
     if (!walkable(p.x, p.z)) p.set(Math.round(p.x / PITCH_X) * PITCH_X + 3.9, p.y, 0);
     p.y = floorY + EYE_HEIGHT;
+    // coming from the view straight down the shaft, look across it instead of at the floorboards
+    if (this.pitch < -0.5) {
+      this.yaw = Math.atan2(Math.round(p.x / PITCH_X) * PITCH_X - p.x, p.z);
+      this.pitch = -0.12;
+    }
     this.active = true;
     this.lastRoom = this.roomKey();
   }
