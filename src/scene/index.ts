@@ -1,5 +1,5 @@
 import { PerspectiveCamera, Scene, WebGLRenderer } from 'three';
-import { Library } from './library';
+import { Library, yieldToMain } from './library';
 import { FOG } from './materials';
 import { FrameWatch, initialTier, lowerTier, TIERS, type Tier } from './quality';
 import { APOTHEM, FLOOR_HEIGHT, PITCH_X } from './dimensions';
@@ -46,7 +46,8 @@ const VIEWS = {
   },
 } satisfies Record<string, (c: PerspectiveCamera, t: number) => void>;
 
-export function mountLibrary(container: HTMLElement): LibraryScene {
+/** Builds the scene over several short tasks, so the page stays responsive while it loads. */
+export async function mountLibrary(container: HTMLElement): Promise<LibraryScene> {
   let tier = initialTier();
   if (import.meta.env.DEV) {
     const forced = new URLSearchParams(location.search).get('tier');
@@ -62,11 +63,13 @@ export function mountLibrary(container: HTMLElement): LibraryScene {
   };
   const camera = new PerspectiveCamera(62, 1, 0.03, 120);
   const scene = new Scene();
-  const library = new Library(tier);
+  await yieldToMain();
+  const library = await Library.create(tier);
   scene.add(library.group);
   container.appendChild(renderer.domElement);
   renderer.domElement.style.cssText = 'display:block;width:100%;height:100%';
   resize();
+  await yieldToMain();
 
   // portrait screens look straight down the shaft; wider ones look across the railing into it
   const devView = import.meta.env.DEV ? new URLSearchParams(location.search).get('view') : null;
@@ -77,14 +80,12 @@ export function mountLibrary(container: HTMLElement): LibraryScene {
     const next = lowerTier(tier);
     if (!next) return;
     tier = next;
-    library.setTier(tier);
-    resize();
+    void library.setTier(tier).then(resize);
   });
 
   // Floating origin: far from the origin floats lose precision, so the camera is pulled back by
   // whole rooms and the shaders' room offset takes up the difference. Nothing visible changes.
   const roomOffset = { x: 0, y: 0 };
-  const rebaseListeners: ((dx: number, dy: number) => void)[] = [];
   const rebase = () => {
     const kx = Math.abs(camera.position.x) > REBASE_DISTANCE ? Math.round(camera.position.x / PITCH_X) : 0;
     const ky = Math.abs(camera.position.y) > REBASE_DISTANCE ? Math.floor(camera.position.y / FLOOR_HEIGHT) : 0;
@@ -94,10 +95,14 @@ export function mountLibrary(container: HTMLElement): LibraryScene {
     roomOffset.x += kx;
     roomOffset.y += ky;
     library.setRoomOffset(roomOffset.x, roomOffset.y);
-    for (const l of rebaseListeners) l(kx * PITCH_X, ky * FLOOR_HEIGHT);
   };
 
   const hud = import.meta.env.DEV && new URLSearchParams(location.search).has('fps') ? frameReadout(container) : null;
+
+  idleView()(camera, 0);
+  library.follow(camera.position.x, camera.position.y);
+  // compiles shaders in parallel where the driver allows, instead of stalling the first frame
+  await renderer.compileAsync(scene, camera);
 
   let last = performance.now();
   watch.reset(last);

@@ -3,7 +3,14 @@ import Base from '../layouts/Base.astro';
 ---
 <Base>
   <main class="poster">
-    <div class="scene" id="scene" aria-hidden="true"></div>
+    <div class="scene" id="scene" aria-hidden="true">
+      <picture>
+        <source media="(orientation: portrait)" type="image/avif" srcset="/poster-tall.avif" />
+        <source media="(orientation: portrait)" type="image/webp" srcset="/poster-tall.webp" />
+        <source type="image/avif" srcset="/poster-wide.avif" />
+        <img class="still" src="/poster-wide.webp" alt="" fetchpriority="high" decoding="async" />
+      </picture>
+    </div>
 
     <header class="masthead">
       <h1>Every Page</h1>
@@ -44,7 +51,7 @@ import Base from '../layouts/Base.astro';
   const start = async () => {
     if (!supportsWebGL2()) return;
     const { mountLibrary } = await import('../scene');
-    const scene = mountLibrary(container);
+    const scene = await mountLibrary(container);
     requestAnimationFrame(() => requestAnimationFrame(() => scene.canvas.classList.add('shown')));
   };
   const idle = (cb: () => void) => ('requestIdleCallback' in window ? requestIdleCallback(cb, { timeout: 1500 }) : setTimeout(cb, 200));
@@ -88,6 +95,15 @@ import Base from '../layouts/Base.astro';
         radial-gradient(70% 75% at 0% 0%, rgb(43 23 16 / 0.85), rgb(43 23 16 / 0.4) 55%, transparent 80%),
         linear-gradient(to top, rgb(43 23 16 / 0.5), transparent 25%);
     }
+  }
+
+  .still,
+  .scene :global(canvas) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .scene :global(canvas) {

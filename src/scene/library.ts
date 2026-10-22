@@ -4,7 +4,13 @@ import { glowMaterial, lampMaterial, libraryMaterial } from './materials';
 import { BOOKS_PER_ROOM, FLOOR_HEIGHT, LAMP_HEIGHT, LAMP_Z, PITCH_X } from './dimensions';
 import type { Tier } from './quality';
 
-const slots = bookSlots();
+/** Give the browser a turn, so building the scene never blocks input for long. */
+export const yieldToMain = () =>
+  new Promise<void>((resolve) => {
+    const s = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
+    if (s?.yield) s.yield().then(resolve);
+    else setTimeout(resolve, 0);
+  });
 
 function bookGeometry() {
   const g = new BoxGeometry(1, 1, 1);
@@ -23,32 +29,39 @@ export class Library {
   readonly group = new Group();
   readonly shellMaterial = libraryMaterial();
   readonly bookMaterial = libraryMaterial({ books: true });
-  private centre = new Vector2(Number.NaN, Number.NaN);
-  private parts: { dispose(): void }[] = [];
+  books!: InstancedMesh;
   /** Instance index of the first book in the centre room. */
   centreBookBase = 0;
+  private centre = new Vector2(Number.NaN, Number.NaN);
+  private parts: { dispose(): void }[] = [];
 
-  constructor(private tier: Tier) {
-    this.build();
+  private constructor(private tier: Tier) {}
+
+  static async create(tier: Tier): Promise<Library> {
+    const library = new Library(tier);
+    await library.build();
+    return library;
   }
 
-  setTier(tier: Tier) {
+  async setTier(tier: Tier) {
     this.tier = tier;
-    for (const p of this.parts) p.dispose();
-    this.group.clear();
+    const old = this.group.children.slice();
+    const oldParts = this.parts;
     this.parts = [];
-    this.build();
+    await this.build(old);
+    for (const p of oldParts) p.dispose();
     this.centre.set(Number.NaN, Number.NaN);
   }
 
-  private build() {
+  /** Builds the new block, then swaps it in for `replacing` in one go. */
+  private async build(replacing: readonly Group['children'][number][] = []) {
     const { roomsX: nx, roomsY: ny, bookRoomsY: by, glow } = this.tier;
     const near: Matrix4[] = [], far: Matrix4[] = [], lamps: Matrix4[] = [], glowPositions: number[] = [];
     const bookRooms: Matrix4[] = [];
     for (let dy = -ny; dy <= ny; dy++) {
       for (let dx = -nx; dx <= nx; dx++) {
         const m = new Matrix4().makeTranslation(dx * PITCH_X, dy * FLOOR_HEIGHT, 0);
-        const close = Math.abs(dx) <= 1 && Math.abs(dy) <= Math.max(by, 0);
+        const close = Math.abs(dx) <= 1 && Math.abs(dy) <= by;
         (close ? near : far).push(m);
         if (close) {
           if (dx === 0 && dy === 0) this.centreBookBase = bookRooms.length * BOOKS_PER_ROOM;
@@ -60,16 +73,21 @@ export class Library {
         }
       }
     }
+    const added: Group['children'][number][] = [];
     const instanced = (geometry: BufferGeometry, material: InstancedMesh['material'], matrices: Matrix4[]) => {
       const mesh = new InstancedMesh(geometry, material, matrices.length);
       matrices.forEach((m, i) => mesh.setMatrixAt(i, m));
       mesh.frustumCulled = false;
-      this.group.add(mesh);
+      added.push(mesh);
       this.parts.push(geometry);
       return mesh;
     };
+
     instanced(buildRoom({ distant: false }), this.shellMaterial, near);
+    await yieldToMain();
     if (far.length) instanced(buildRoom({ distant: true }), this.shellMaterial, far);
+    await yieldToMain();
+    const slots = bookSlots();
     const books: Matrix4[] = [];
     for (const room of bookRooms) for (const s of slots) books.push(room.clone().multiply(s));
     this.books = instanced(bookGeometry(), this.bookMaterial, books);
@@ -79,12 +97,12 @@ export class Library {
       g.setAttribute('position', new Float32BufferAttribute(glowPositions, 3));
       const points = new Points(g, glowMaterial());
       points.frustumCulled = false;
-      this.group.add(points);
+      added.push(points);
       this.parts.push(g);
     }
+    this.group.remove(...replacing);
+    this.group.add(...added);
   }
-
-  books!: InstancedMesh;
 
   /** Keep the block centred on the camera. Returns true when it moved. */
   follow(x: number, y: number): boolean {
