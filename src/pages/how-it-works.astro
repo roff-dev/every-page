@@ -1,0 +1,946 @@
+---
+import '@fontsource/courier-prime/400.css';
+import Base from '../layouts/Base.astro';
+import { site } from '../site';
+
+const sections = [
+  ['every-page', 'A library with every page'],
+  ['small', 'A library small enough to count'],
+  ['shuffled', 'Shuffled, not stored'],
+  ['backwards', 'Running it backwards is search'],
+  ['size', 'How big is it?'],
+  ['wraps', 'It wraps around'],
+  ['thanks', 'Prior art and thanks'],
+] as const;
+
+const symbols = [...'abcdefghijklmnopqrstuvwxyz ,.'];
+const symbolName = (s: string) => (s === ' ' ? 'space' : s === ',' ? 'comma' : s === '.' ? 'full stop' : s);
+const tinyPages = ['nnn', 'nno', 'non', 'noo', 'onn', 'ono', 'oon', 'ooo'];
+---
+<Base
+  title="How it works"
+  description="How one library can hold every page of 3,200 characters, and how your words are found in it: a shuffle that runs backwards."
+>
+  <header class="top">
+    <a class="wordmark" href="/">{site.name}</a>
+    <a class="back" href="/">Back to the library</a>
+  </header>
+
+  <div class="layout">
+    <nav class="contents" aria-label="On this page">
+      <ul>
+        {sections.map(([id, title]) => <li><a href={`#${id}`}>{title}</a></li>)}
+      </ul>
+    </nav>
+
+    <main class="column">
+      <section id="every-page" class="hero" aria-labelledby="every-page-title">
+        <h1 id="every-page-title">A library with every page</h1>
+        <p class="lede">
+          In 1941 Jorge Luis Borges imagined a library of hexagonal rooms whose books hold every possible
+          arrangement of a few letters. Most of it is noise. Somewhere in it is everything ever written, and everything
+          that ever will be.
+        </p>
+        <figure class="quote">
+          <blockquote>
+            <p>When it was proclaimed that the Library contained all books, the first impression was one of extravagant happiness.</p>
+          </blockquote>
+          <figcaption>Jorge Luis Borges, <cite>The Library of Babel</cite>, translated by James E. Irby</figcaption>
+        </figure>
+        <p>
+          This library keeps his shape: four walls of five shelves in each hexagon, thirty-two books to a shelf, 410 pages
+          to a book, 40 lines of 80 characters to a page. Borges gave his books 25 symbols. Mine have 29, all
+          26 letters plus space, comma and full stop, so English can be found in them.
+        </p>
+        <figure class="symbols">
+          <ol aria-label="The library's 29 symbols">
+            {symbols.map((s) => (
+              <li>
+                <span class="glyph" aria-hidden="true">{s === ' ' ? '␣' : s}</span>
+                <span class="visually-hidden">{symbolName(s)}</span>
+              </li>
+            ))}
+          </ol>
+        </figure>
+        <p>
+          A page is 3,200 characters, each one any of the 29. That makes 29<sup>3200</sup> different pages: a number
+          4,680 digits long. Every one of them is on a shelf here, and none of them is stored anywhere.
+        </p>
+      </section>
+
+      <section id="small" aria-labelledby="small-title">
+        <h2 id="small-title">A library small enough to count</h2>
+        <p>
+          Shrink everything. Give the library two symbols, <span class="mono">n</span> and <span class="mono">o</span>,
+          and pages three characters long. Now there are exactly eight pages, and the whole library fits on one shelf.
+        </p>
+        <figure class="fig fig-shelf" data-shelf>
+          <div class="picker" role="group" aria-label="Choose a page, one letter at a time">
+            {[0, 1, 2].map((i) => (
+              <button class="tile" type="button" data-tile={i} aria-label={`Letter ${i + 1}: n`}>n</button>
+            ))}
+          </div>
+          <ol class="shelf">
+            {tinyPages.map((p, i) => (
+              <li>
+                <button class="book" type="button" data-book={i} aria-pressed={i === 0 ? 'true' : 'false'}>
+                  <span class="label">{p}</span>
+                  <span class="visually-hidden">, book {i + 1}</span>
+                </button>
+                <span class="place" aria-hidden="true">{i + 1}</span>
+              </li>
+            ))}
+          </ol>
+          <p class="readout" data-readout aria-live="polite">
+            <span class="mono">nnn</span> is the first book. Read <span class="mono">n</span> as 0 and
+            <span class="mono">o</span> as 1, and the page is 000 in binary: 0, the first place on the shelf.
+          </p>
+          <figcaption>Flip the letters, or take a book down. Each page is its own place on the shelf.</figcaption>
+        </figure>
+        <p>
+          Finding a page here is counting. Read the page as a number, and the number is where it stands. The real
+          library works the same way with 29 symbols instead of two, and 3,200 characters instead of three. The number
+          is just very long.
+        </p>
+      </section>
+
+      <section id="shuffled" aria-labelledby="shuffled-title">
+        <h2 id="shuffled-title">Shuffled, not stored</h2>
+        <p>
+          Counting has a problem. Shelved in order, the first billion billion books all begin with the same 3,000-odd
+          letter <span class="mono">a</span>s, and every book differs from the next in its last few characters. Borges's
+          library looks like chaos from any shelf. So each place has to be shuffled into its page, by a shuffle that can
+          be run backwards.
+        </p>
+        <p>
+          I use a Feistel network. It cuts the page into two halves, mixes one half into a stream of noise, adds that noise
+          to the other half letter by letter, and swaps them. One round barely disguises anything. Six rounds leave no
+          trace of the order underneath, and because each step can be undone, every page still has exactly one place.
+        </p>
+        <figure class="fig plate" data-feistel>
+          <div class="controls">
+            <label class="range">
+              <span>Rounds</span>
+              <input type="range" min="0" max="6" step="1" value="0" data-rounds aria-describedby="rounds-value" />
+              <output id="rounds-value" data-rounds-value>0</output>
+            </label>
+            <div class="stepper">
+              <button type="button" class="pill" data-shift="-8" aria-label="Earlier places">Earlier</button>
+              <button type="button" class="pill" data-shift="8" aria-label="Later places">Later</button>
+            </div>
+          </div>
+          <table class="toy">
+            <caption class="visually-hidden">Eight neighbouring places in a toy library of eight-character pages, and the page written at each</caption>
+            <thead><tr><th scope="col">Place</th><th scope="col">Page</th></tr></thead>
+            <tbody data-rows></tbody>
+          </table>
+          <p class="round-note" data-round-note aria-live="polite"></p>
+          <figcaption>
+            A toy page of eight characters: two halves of four. At zero rounds the page is just its place written in the
+            alphabet. Add rounds and neighbours stop looking alike.
+          </figcaption>
+        </figure>
+        <p>
+          The obvious alternative is to multiply the place by a huge number and add another. That shuffles too, and it is
+          easy to run backwards, but it leaves a tell. Neighbouring pages differ from each other in the same pattern,
+          over and over: the stripes in the first panel below. The Feistel shuffle's differences are pure noise.
+        </p>
+        <figure class="fig plate" data-stripes>
+          <div class="stripes">
+            <div>
+              <p class="panel-title">Multiply and add</p>
+              <svg data-panel="affine" role="img" aria-label="Differences between neighbouring pages under multiply and add: the same pattern repeats down every row, forming vertical stripes"></svg>
+            </div>
+            <div>
+              <p class="panel-title">Feistel, six rounds</p>
+              <svg data-panel="feistel" role="img" aria-label="Differences between neighbouring pages under the Feistel shuffle: no pattern, only noise"></svg>
+            </div>
+          </div>
+          <button type="button" class="pill" data-reroll>Compare other neighbours</button>
+          <figcaption>
+            Each row is the letter-by-letter difference between one real page and the next, first 48 characters. Measured
+            over thousands of pages, multiply-and-add repeats the same difference at 66.7% of positions. The Feistel
+            shuffle repeats at 3.46%, which is chance (1 in 29 is 3.45%).
+          </figcaption>
+        </figure>
+      </section>
+
+      <section id="backwards" aria-labelledby="backwards-title">
+        <h2 id="backwards-title">Running it backwards is search</h2>
+        <p>
+          To find your words, the library doesn't look for them. It writes the page they're on, then asks where that page
+          is shelved.
+        </p>
+        <figure class="fig plate" data-search>
+          <label class="search-field">
+            <span>Words to find</span>
+            <input type="text" value="hello" maxlength="120" autocomplete="off" autocapitalize="none" spellcheck="false" data-words />
+          </label>
+          <ol class="steps">
+            <li>
+              <p>The library reads them as <q class="mono" data-read>hello</q></p>
+            </li>
+            <li>
+              <p data-filler>It fills a page with random letters, seeded by your words themselves, and writes them in.</p>
+              <pre class="facsimile" data-page aria-hidden="true"></pre>
+            </li>
+            <li>
+              <p>It runs the six rounds backwards on that page. Out comes a place: a number up to 4,680 digits long.</p>
+            </li>
+            <li>
+              <p data-address>That number is an address: a hexagon, a wall, a shelf, a volume and a page.</p>
+              <a class="pill pill-solid" href="/#q=hello" data-walk>Walk there</a>
+            </li>
+          </ol>
+          <figcaption>
+            The same words always make the same page, so they are always in the same place. Ask for them elsewhere and the
+            seed changes, giving another page that holds them too.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section id="size" aria-labelledby="size-title">
+        <h2 id="size-title">How big is it?</h2>
+        <div class="powers" aria-hidden="true">
+          <p><span class="big">10<sup>80</sup></span> atoms in the observable universe</p>
+          <p><span class="big lit">10<sup>4680</sup></span> pages in the library</p>
+        </div>
+        <p class="visually-hidden">About 10 to the power 80 atoms in the observable universe, against about 10 to the power 4,680 pages in the library.</p>
+        <p>
+          Turn every atom in the observable universe into a universe of its own. Then do it again inside each of those,
+          and again, fifty-eight levels deep. You still have fewer atoms than this library has pages.
+        </p>
+        <details class="fig number" data-number>
+          <summary>Show the whole number</summary>
+          <p class="digits" role="img" aria-label="All 4,680 digits of 29 to the power 3,200" data-digits></p>
+        </details>
+      </section>
+
+      <section id="wraps" aria-labelledby="wraps-title">
+        <h2 id="wraps-title">It wraps around</h2>
+        <p>
+          The hexagons are numbered in one long line. Each floor holds 2<sup>7764</sup> of them, a number 2,338 digits
+          long, and stepping east moves you one number along. Walk east past the last gallery on a floor and you are on
+          the first gallery of the floor above: the galleries are one enormous spiral. The stairs skip a whole floor at a
+          time. After the last hexagon comes the first again.
+        </p>
+        <figure class="fig plate" data-spiral>
+          <svg class="spiral" viewBox="0 0 340 250" role="img" aria-labelledby="spiral-place" data-map></svg>
+          <div class="ways" role="group" aria-label="Move through the toy library">
+            <button type="button" class="pill" data-go="west">West</button>
+            <button type="button" class="pill" data-go="east">East</button>
+            <button type="button" class="pill" data-go="up">Up</button>
+            <button type="button" class="pill" data-go="down">Down</button>
+          </div>
+          <p class="readout-ink" id="spiral-place" data-spiral-place aria-live="polite">Hexagon 1: floor 1, gallery 1.</p>
+          <figcaption>
+            A toy library with five galleries a floor and eighteen hexagons. Arrow keys work too, once a button has focus.
+          </figcaption>
+        </figure>
+        <p>
+          The very last hexagon is nearly empty. 29<sup>3200</sup> pages don't divide evenly into hexagons of 262,400
+          pages: there is exactly one left over. So the last hexagon has one book on its first shelf, and that book has one
+          page.
+        </p>
+      </section>
+
+      <section id="thanks" aria-labelledby="thanks-title">
+        <h2 id="thanks-title">Prior art and thanks</h2>
+        <p>
+          The idea is Borges's, from <cite>The Library of Babel</cite>. The first library you could actually search is
+          Jonathan Basile's <a href="https://libraryofbabel.info">libraryofbabel.info</a>, which holds every page of 3,200
+          characters and finds text with an invertible random number generator. Reading how he did it is what made me
+          want to build this.
+        </p>
+        <p>
+          The two libraries are shelved differently. His shuffle is a linear congruential generator with extra mixing;
+          mine is the Feistel network above, so the same words sit in different places in each. Mine is also a place,
+          with galleries, stairs and lamps.
+        </p>
+        <p>
+          I built this to make Borges's idea something you can walk through. Nothing is stored; every page is computed on
+          your device.
+        </p>
+        <a class="cta" href="/">Find your page</a>
+      </section>
+    </main>
+  </div>
+</Base>
+
+<script>
+  import { explain } from '../explainer';
+  explain();
+</script>
+
+<style>
+  .top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: max(var(--space-2), env(safe-area-inset-top)) var(--gutter) 0;
+  }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step-1);
+    text-decoration: none;
+    padding-block: 0.4rem;
+  }
+
+  .back {
+    font-size: var(--step--1);
+    color: var(--muted);
+    padding-block: 0.7rem;
+  }
+
+  .layout {
+    max-width: 78rem;
+    margin: 0 auto;
+    padding: var(--space-4) var(--gutter) var(--space-5);
+  }
+
+  .contents {
+    display: none;
+  }
+
+  @media (min-width: 72rem) {
+    .layout {
+      display: grid;
+      grid-template-columns: 11rem minmax(0, 1fr);
+      gap: var(--space-5);
+    }
+
+    .contents {
+      display: block;
+      position: sticky;
+      top: var(--space-4);
+      align-self: start;
+      padding-top: 0.6rem;
+      font-size: var(--step--1);
+      line-height: 1.35;
+    }
+
+    .contents ul {
+      margin: 0;
+      padding: 0 0 0 var(--space-2);
+      list-style: none;
+      border-left: 1px solid rgb(185 138 94 / 0.45);
+    }
+
+    .contents a {
+      display: block;
+      padding: 0.45rem 0;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.3s var(--ease-settle);
+    }
+
+    .contents a:hover,
+    .contents a[aria-current] {
+      color: var(--lamplight);
+    }
+  }
+
+  /* text runs in a 40rem measure; figures break out to the right */
+  .column {
+    display: grid;
+    grid-template-columns: [text-start] minmax(0, 40rem) [text-end] minmax(0, 1fr) [wide-end];
+  }
+
+  .column > section {
+    grid-column: text-start / wide-end;
+    display: grid;
+    grid-template-columns: subgrid;
+    row-gap: var(--space-3);
+    padding-top: var(--space-5);
+    scroll-margin-top: var(--space-3);
+  }
+
+  .column > section > * {
+    grid-column: text;
+  }
+
+  .column > section > .fig,
+  .column > section > .powers {
+    grid-column: text-start / wide-end;
+  }
+
+  .column > .hero {
+    padding-top: var(--space-3);
+  }
+
+  h1 {
+    font-size: var(--step-display);
+    font-weight: 380;
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    max-width: 14ch;
+  }
+
+  h2 {
+    font-size: clamp(2rem, 1.5rem + 2.2vw, 3.2rem);
+    max-width: 18ch;
+  }
+
+  .lede {
+    font-size: var(--step-1);
+    line-height: 1.45;
+    color: var(--cream);
+  }
+
+  section p {
+    color: var(--muted);
+  }
+
+  section .lede,
+  .quote p {
+    color: var(--cream);
+  }
+
+  .quote {
+    margin: var(--space-2) 0;
+    padding-left: var(--space-3);
+    border-left: 2px solid var(--lamplight);
+  }
+
+  .quote blockquote {
+    margin: 0;
+  }
+
+  .quote p {
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-style: italic;
+    font-size: var(--step-2);
+    line-height: 1.22;
+  }
+
+  .quote figcaption {
+    margin-top: var(--space-1);
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+
+  :global(.mono) {
+    font-family: var(--font-page);
+    font-size: 0.95em;
+    color: var(--cream);
+  }
+
+  q:global(.mono) {
+    quotes: '“' '”';
+  }
+
+  sup {
+    font-size: 0.6em;
+    line-height: 0;
+  }
+
+  .symbols {
+    margin: 0;
+  }
+
+  .symbols ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .glyph {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2.4rem;
+    border-radius: 0.25rem;
+    background: var(--parchment);
+    color: var(--ink);
+    font-family: var(--font-page);
+    font-size: 1.15rem;
+  }
+
+  .symbols li:nth-last-child(-n + 3) .glyph {
+    background: var(--lamplight);
+  }
+
+  .fig {
+    margin: var(--space-2) 0;
+  }
+
+  .fig figcaption {
+    margin-top: var(--space-2);
+    font-size: var(--step--1);
+    line-height: 1.5;
+    max-width: 40rem;
+  }
+
+  .plate {
+    padding: var(--space-3);
+    border-radius: var(--radius-card);
+    background: var(--parchment);
+    color: var(--ink);
+    box-shadow: 0 24px 60px -24px rgb(0 0 0 / 0.6);
+  }
+
+  .plate figcaption,
+  .plate p {
+    color: var(--faded);
+  }
+
+  .plate :global(.mono) {
+    color: var(--ink);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0 1.1rem;
+    border: 1px solid var(--rust);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--rust);
+    font-size: var(--step--1);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  .pill:hover {
+    background: rgb(138 59 38 / 0.08);
+  }
+
+  .pill:active {
+    transform: translateY(1px);
+  }
+
+  .pill-solid {
+    background: var(--rust);
+    color: var(--parchment);
+  }
+
+  .pill-solid:hover {
+    background: #75301e;
+  }
+
+  .plate :focus-visible {
+    outline-color: var(--rust);
+  }
+
+  /* the eight-page shelf */
+  .fig-shelf {
+    padding: var(--space-4) var(--space-3) var(--space-3);
+    border-radius: var(--radius-card);
+    background:
+      radial-gradient(ellipse 60% 70% at var(--lit-x, 7%) 30%, rgb(255 196 107 / 0.2), transparent 70%),
+      var(--walnut);
+  }
+
+  .picker {
+    display: flex;
+    gap: var(--space-1);
+  }
+
+  .tile {
+    width: 3.5rem;
+    height: 4.2rem;
+    border: 0;
+    border-radius: 0.3rem;
+    background: var(--parchment);
+    color: var(--ink);
+    font-family: var(--font-page);
+    font-size: 2.2rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #c9b48f;
+    transition: transform 0.15s var(--ease-settle), box-shadow 0.15s;
+  }
+
+  .tile:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #c9b48f;
+  }
+
+  .shelf {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    align-items: end;
+    gap: clamp(0.25rem, 1vw, 0.6rem);
+    margin: var(--space-4) 0 0;
+    padding: 0 clamp(0.25rem, 2vw, 1.5rem);
+    list-style: none;
+    border-bottom: 0.7rem solid #80492b;
+    box-shadow: 0 1px 0 #a8673f;
+  }
+
+  .shelf li {
+    position: relative;
+    display: grid;
+    justify-items: center;
+  }
+
+  .book {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: min(100%, 4.4rem);
+    min-width: 2.75rem;
+    height: calc(var(--h) * clamp(8rem, 5.5rem + 6vw, 12rem));
+    padding: 0;
+    border: 0;
+    border-radius: 0.35rem 0.35rem 0.15rem 0.15rem;
+    background:
+      linear-gradient(transparent 12%, rgb(0 0 0 / 0.14) 12% 15%, transparent 15% 85%, rgb(0 0 0 / 0.14) 85% 88%, transparent 88%),
+      linear-gradient(90deg, rgb(255 255 255 / 0.12), transparent 30% 70%, rgb(0 0 0 / 0.18)),
+      var(--spine);
+    cursor: pointer;
+    transition: transform 0.5s var(--ease-settle), box-shadow 0.5s var(--ease-settle);
+  }
+
+  .shelf li:nth-child(1) .book { --spine: #b84a33; --h: 0.92; }
+  .shelf li:nth-child(2) .book { --spine: #d49440; --h: 1; }
+  .shelf li:nth-child(3) .book { --spine: #4d736b; --h: 0.86; }
+  .shelf li:nth-child(4) .book { --spine: #e8d1a3; --h: 0.97; }
+  .shelf li:nth-child(5) .book { --spine: #7a4561; --h: 0.9; }
+  .shelf li:nth-child(6) .book { --spine: #858c47; --h: 1; }
+  .shelf li:nth-child(7) .book { --spine: #455480; --h: 0.88; }
+  .shelf li:nth-child(8) .book { --spine: #cc7354; --h: 0.95; }
+
+  .label {
+    writing-mode: vertical-rl;
+    padding: 0.5rem 0.15rem;
+    border-radius: 0.15rem;
+    background: var(--parchment);
+    color: var(--ink);
+    font-family: var(--font-page);
+    font-size: clamp(0.9rem, 0.7rem + 0.8vw, 1.25rem);
+    letter-spacing: 0.15em;
+  }
+
+  .book[aria-pressed='true'] {
+    transform: translateY(-2.4rem);
+    box-shadow:
+      0 0 0 2px var(--lamplight),
+      0 1.2rem 2.5rem -0.5rem rgb(255 196 107 / 0.55);
+  }
+
+  .book[aria-pressed='true'] .label {
+    background: var(--lamplight);
+  }
+
+  .place {
+    position: absolute;
+    bottom: -2.3rem;
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+
+  .readout {
+    margin-top: var(--space-5);
+    min-height: 3em;
+    font-size: var(--step-0);
+    color: var(--cream);
+    max-width: 40rem;
+  }
+
+  .fig-shelf figcaption {
+    color: var(--muted);
+  }
+
+  /* Feistel toy */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .range {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex: 1 1 16rem;
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step-1);
+  }
+
+  .range input {
+    flex: 1;
+    min-height: 2.75rem;
+    accent-color: var(--rust);
+  }
+
+  .range output {
+    min-width: 1ch;
+    font-family: var(--font-page);
+  }
+
+  .stepper {
+    display: flex;
+    gap: var(--space-1);
+  }
+
+  .toy {
+    width: 100%;
+    margin-top: var(--space-3);
+    border-collapse: collapse;
+    font-family: var(--font-page);
+    font-size: clamp(1rem, 0.8rem + 1vw, 1.45rem);
+  }
+
+  .toy th {
+    padding-bottom: var(--space-1);
+    font-family: var(--font-text);
+    font-size: var(--step--1);
+    font-weight: 400;
+    color: var(--faded);
+    text-align: left;
+  }
+
+  .toy td {
+    padding: 0.2rem 0;
+    border-top: 1px solid rgb(138 59 38 / 0.15);
+  }
+
+  .toy td:first-child,
+  .toy th:first-child {
+    width: 11rem;
+    color: var(--faded);
+  }
+
+  .toy :global(.half) {
+    display: inline-block;
+    white-space: pre;
+  }
+
+  .toy :global(.half + .half) {
+    margin-left: 0.5em;
+    padding-left: 0.5em;
+    border-left: 1px solid rgb(138 59 38 / 0.4);
+  }
+
+  .toy :global(.ch) {
+    transition: color 0.4s;
+  }
+
+  .toy :global(.ch.changed) {
+    color: var(--rust);
+  }
+
+  .round-note {
+    margin-top: var(--space-2);
+    min-height: 3em;
+    font-size: var(--step--1);
+  }
+
+  /* stripes */
+  .stripes {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  @media (min-width: 40rem) {
+    .stripes {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .plate .panel-title {
+    margin-bottom: var(--space-1);
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step-1);
+    color: var(--ink);
+  }
+
+  .stripes svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 0.2rem;
+    background: var(--ink);
+  }
+
+  [data-reroll] {
+    margin-top: var(--space-2);
+  }
+
+  /* backwards search */
+  .search-field {
+    display: grid;
+    gap: 0.3rem;
+    max-width: 30rem;
+  }
+
+  .search-field span {
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step-1);
+  }
+
+  .search-field input {
+    min-height: 2.75rem;
+    padding: 0.3rem 0;
+    border: 0;
+    border-bottom: 1px solid var(--rust);
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--font-page);
+    font-size: var(--step-1);
+  }
+
+  .search-field input:focus-visible {
+    outline: none;
+    box-shadow: 0 2px 0 var(--rust);
+  }
+
+  .steps {
+    display: grid;
+    gap: var(--space-3);
+    margin: var(--space-3) 0 0;
+    padding-left: 1.6rem;
+  }
+
+  .steps li::marker {
+    font-family: var(--font-display);
+    color: var(--rust);
+  }
+
+  .plate .steps p {
+    color: var(--ink);
+  }
+
+  .steps .pill {
+    margin-top: var(--space-2);
+  }
+
+  .facsimile {
+    container-type: inline-size;
+    margin: var(--space-2) 0 0;
+    padding: 0.6rem;
+    border: 1px solid rgb(138 59 38 / 0.25);
+    background: #fbf3e2;
+    color: var(--faded);
+    font-family: var(--font-page);
+    font-size: min(0.62rem, 1.55vw);
+    line-height: 1.25;
+    overflow: hidden;
+    white-space: pre;
+  }
+
+  .facsimile :global(mark) {
+    background: var(--lamplight);
+    color: var(--ink);
+    border-radius: 1px;
+    box-shadow: 0 0 0 2px var(--lamplight);
+  }
+
+  /* how big */
+  .powers {
+    display: grid;
+    gap: var(--space-2);
+    margin: var(--space-2) 0;
+  }
+
+  .powers p {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem var(--space-2);
+    color: var(--muted);
+  }
+
+  .big {
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: clamp(2.6rem, 1.6rem + 4vw, 5rem);
+    line-height: 1;
+    color: var(--cream);
+  }
+
+  .big.lit {
+    color: var(--lamplight);
+    font-size: clamp(3.6rem, 2rem + 8vw, 9rem);
+  }
+
+  .number summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    color: var(--cream);
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: var(--brass);
+    text-underline-offset: 0.2em;
+  }
+
+  .digits {
+    margin-top: var(--space-2);
+    font-family: var(--font-page);
+    font-size: 0.62rem;
+    line-height: 1.3;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    word-break: break-all;
+    text-align: justify;
+  }
+
+  /* wrap-around */
+  .spiral {
+    display: block;
+    width: 100%;
+    max-width: 34rem;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  .ways {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+  }
+
+  .plate .readout-ink {
+    margin-top: var(--space-2);
+    color: var(--ink);
+  }
+
+  /* close */
+  .cta {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    min-height: 3.2rem;
+    margin-top: var(--space-2);
+    padding: 0 1.6rem;
+    border-radius: 999px;
+    background: var(--lamplight);
+    color: var(--night);
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step-1);
+    text-decoration: none;
+    transition: background-color 0.2s;
+  }
+
+  .cta:hover {
+    background: #ffd38f;
+  }
+
+  @media (max-width: 30rem) {
+    .plate,
+    .fig-shelf {
+      padding-inline: var(--space-2);
+    }
+  }
+</style>
