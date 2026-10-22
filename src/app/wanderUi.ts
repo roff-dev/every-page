@@ -45,6 +45,11 @@ export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
       }
       hint.hidden = seen;
       if (!seen) setTimeout(() => (hint.hidden = true), 7000);
+      // coming back from a closed book (or a skipped journey) leaves focus nowhere useful
+      const active = document.activeElement;
+      if (!active || active === document.body || active.closest('.reader')) {
+        [...root.querySelectorAll<HTMLElement>('button')].find((b) => b.getClientRects().length > 0)?.focus({ preventScroll: true });
+      }
     },
     hide() {
       label.hidden = true;
