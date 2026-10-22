@@ -38,6 +38,13 @@ import Base from '../layouts/Base.astro';
         <span class="counter" data-counter hidden></span>
       </div>
     </form>
+
+    <section class="journey" id="journey" aria-label="Journey to your page">
+      <p class="caption" data-caption aria-live="polite"></p>
+      <p class="distance" data-distance></p>
+      <button class="skip" type="button" data-skip hidden>Skip</button>
+      <div class="veil" data-veil aria-hidden="true"></div>
+    </section>
   </main>
 </Base>
 
@@ -229,6 +236,103 @@ import Base from '../layouts/Base.astro';
     color: var(--muted);
     opacity: 0.55;
     cursor: default;
+  }
+
+  .masthead,
+  .card {
+    transition: opacity 600ms var(--ease-settle), translate 600ms var(--ease-settle);
+  }
+
+  :global(body[data-state='journey']) .masthead,
+  :global(body[data-state='journey']) .card {
+    opacity: 0;
+    translate: 0 1.5rem;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity 600ms var(--ease-settle), translate 600ms var(--ease-settle), visibility 0s 600ms;
+  }
+
+  :global(body[data-state='journey']) .scene::after {
+    opacity: 0.35;
+  }
+
+  .scene::after {
+    transition: opacity 1s var(--ease-settle);
+  }
+
+  .journey {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .caption {
+    position: absolute;
+    left: 50%;
+    top: max(14%, calc(env(safe-area-inset-top) + 4.5rem));
+    width: min(100% - 2 * var(--gutter), 38rem);
+    translate: -50% 0.5rem;
+    text-align: center;
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-style: italic;
+    font-size: var(--step-2);
+    line-height: 1.25;
+    text-wrap: balance;
+    color: var(--cream);
+    text-shadow: 0 1px 18px rgb(43 23 16 / 0.9), 0 0 2px rgb(43 23 16 / 0.6);
+    opacity: 0;
+    transition: opacity 800ms var(--ease-settle), translate 800ms var(--ease-settle);
+  }
+
+  .caption:global(.shown) {
+    opacity: 1;
+    translate: -50% 0;
+  }
+
+  .distance {
+    position: absolute;
+    left: var(--gutter);
+    right: var(--gutter);
+    bottom: max(var(--space-3), env(safe-area-inset-bottom));
+    font-family: var(--font-page);
+    font-size: var(--step--1);
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    text-shadow: 0 1px 10px rgb(43 23 16 / 0.9);
+  }
+
+  .distance :global(sup) {
+    font-size: 0.7em;
+  }
+
+  .skip {
+    position: absolute;
+    top: max(var(--space-2), env(safe-area-inset-top));
+    right: var(--gutter);
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0 1.1rem;
+    border: 1px solid var(--brass);
+    border-radius: 999px;
+    background: rgb(43 23 16 / 0.55);
+    color: var(--cream);
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .skip:hover {
+    border-color: var(--lamplight);
+  }
+
+  .veil {
+    position: absolute;
+    inset: 0;
+    background: var(--night);
+    opacity: 0;
   }
 
   .card-actions {
