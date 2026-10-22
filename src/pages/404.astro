@@ -1,0 +1,114 @@
+---
+import Base from '../layouts/Base.astro';
+import SearchCard from '../components/SearchCard.astro';
+import { site } from '../site';
+---
+<Base title="Not found" description="This page exists somewhere in the library. Just not at this address.">
+  <main class="lost">
+    <div class="still" aria-hidden="true">
+      <picture>
+        <source media="(orientation: portrait)" type="image/avif" srcset="/poster-tall.avif" />
+        <source media="(orientation: portrait)" type="image/webp" srcset="/poster-tall.webp" />
+        <source type="image/avif" srcset="/poster-wide.avif" />
+        <img src="/poster-wide.webp" alt="" fetchpriority="high" decoding="async" />
+      </picture>
+    </div>
+
+    <header class="words">
+      <a class="wordmark" href="/">{site.name}</a>
+      <h1>This page exists somewhere in the library. Just not at this address.</h1>
+    </header>
+
+    <SearchCard>
+      <button class="random" type="button" data-random>Take me to a random volume</button>
+    </SearchCard>
+  </main>
+</Base>
+
+<script>
+  import { searchCard } from '../app/searchCard';
+  import { formatLink } from '../engine/links';
+
+  // the library itself opens whatever link it's handed
+  const go = (hash: string) => location.assign('/' + hash);
+  searchCard(document.getElementById('search') as HTMLFormElement, (text) =>
+    go(formatLink({ anchor: { kind: 'query', text, variant: 0 }, offset: 0n })),
+  );
+  document.querySelector('[data-random]')!.addEventListener('click', () => {
+    const [hi, lo] = crypto.getRandomValues(new Uint32Array(2));
+    go(formatLink({ anchor: { kind: 'random', seed: (BigInt(hi!) << 32n) | BigInt(lo!) }, offset: 0n }));
+  });
+</script>
+
+<style>
+  .lost {
+    position: relative;
+    display: grid;
+    align-content: space-between;
+    gap: var(--space-5);
+    min-height: calc(100dvh - 4.5rem);
+    padding: max(var(--space-3), env(safe-area-inset-top)) var(--gutter) var(--space-2);
+    isolation: isolate;
+  }
+
+  .still {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--night);
+  }
+
+  .still img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .still::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to bottom, rgb(43 23 16 / 0.86), rgb(43 23 16 / 0.55) 45%, rgb(43 23 16 / 0.3) 75%),
+      linear-gradient(to top, rgb(43 23 16 / 0.6), transparent 30%);
+  }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step-1);
+    text-decoration: none;
+    display: inline-block;
+    padding-block: 0.4rem;
+  }
+
+  h1 {
+    margin-top: var(--space-4);
+    max-width: 16ch;
+    font-size: clamp(2.4rem, 1.6rem + 4vw, 5.2rem);
+    font-weight: 380;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--cream);
+    text-shadow: 0 0 0.6em rgb(255 196 107 / 0.18);
+  }
+
+  @media (min-width: 64rem) {
+    .lost {
+      grid-template-columns: minmax(0, 1fr) 30rem;
+      align-items: end;
+      align-content: stretch;
+      padding: var(--space-5) max(var(--space-5), var(--gutter)) var(--space-4);
+    }
+
+    .words {
+      align-self: start;
+    }
+
+    .still::after {
+      background:
+        radial-gradient(80% 90% at 0% 0%, rgb(43 23 16 / 0.9), rgb(43 23 16 / 0.45) 60%, transparent 85%),
+        linear-gradient(to top, rgb(43 23 16 / 0.5), transparent 25%);
+    }
+  }
+</style>
