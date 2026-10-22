@@ -45,12 +45,14 @@ export interface JourneyUi {
 
 const pageNumber = (p: number, page: number) => Math.max(1, Math.round(1 + p * page));
 
-export function journeyUi(root: HTMLElement, onSkip: () => void): JourneyUi {
+export function journeyUi(root: HTMLElement, onSkip: () => void, onContinue: () => void): JourneyUi {
   const caption = root.querySelector<HTMLElement>('[data-caption]')!;
   const distanceLine = root.querySelector<HTMLElement>('[data-distance]')!;
   const skip = root.querySelector<HTMLButtonElement>('[data-skip]')!;
   const veil = root.querySelector<HTMLElement>('[data-veil]')!;
+  const carryOn = root.querySelector<HTMLButtonElement>('[data-continue]')!;
   skip.addEventListener('click', onSkip);
+  carryOn.addEventListener('click', onContinue);
   addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Escape' && document.body.dataset.state === 'journey') onSkip();
   });
@@ -83,6 +85,7 @@ export function journeyUi(root: HTMLElement, onSkip: () => void): JourneyUi {
             say(`Follow the light. Wall ${to.wall + 1}, shelf ${to.shelf + 1}, the ${ordinal(to.volume + 1)} volume.`);
           } else if (phase === 'stand') {
             skip.hidden = true;
+            carryOn.hidden = true;
           } else if (phase === 'pull') {
             say('');
           }
@@ -99,6 +102,9 @@ export function journeyUi(root: HTMLElement, onSkip: () => void): JourneyUi {
         veil(opacity) {
           veil.style.opacity = String(opacity);
         },
+        held(held) {
+          carryOn.hidden = !held;
+        },
         riffle(p) {
           distanceLine.textContent = `Page ${pageNumber(p, to.page)}`;
         },
@@ -108,6 +114,7 @@ export function journeyUi(root: HTMLElement, onSkip: () => void): JourneyUi {
       say('');
       distanceLine.innerHTML = '';
       skip.hidden = true;
+      carryOn.hidden = true;
       veil.style.opacity = '0';
     },
   };

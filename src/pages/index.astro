@@ -36,6 +36,7 @@ import SearchCard from '../components/SearchCard.astro';
       <p class="caption" data-caption aria-live="polite"></p>
       <p class="distance" data-distance></p>
       <button class="skip" type="button" data-skip hidden>Skip</button>
+      <button class="continue" type="button" data-continue hidden>Continue</button>
       <div class="veil" data-veil aria-hidden="true"></div>
     </section>
 
@@ -240,6 +241,29 @@ import SearchCard from '../components/SearchCard.astro';
 
   .skip:hover {
     border-color: var(--lamplight);
+  }
+
+  .continue {
+    position: absolute;
+    left: 50%;
+    bottom: max(calc(var(--space-4) + 1.5rem), calc(env(safe-area-inset-bottom) + var(--space-4)));
+    translate: -50% 0;
+    min-height: 3rem;
+    padding: 0 1.6rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--lamplight);
+    color: var(--night);
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step-0);
+    box-shadow: 0 10px 30px -10px rgb(0 0 0 / 0.6);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .continue:hover {
+    background: #ffd38f;
   }
 
   .veil {

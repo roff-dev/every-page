@@ -53,7 +53,7 @@ export function boot() {
   let position: Position | null = null;
   let reading: { close(): void } | null = null;
 
-  const journey = journeyUi(document.getElementById('journey')!, () => scene?.skip());
+  const journey = journeyUi(document.getElementById('journey')!, () => scene?.skip(), () => scene?.resume());
   const wander = wanderUi(document.getElementById('wander')!, {
     go: (way) => scene?.go(way),
     search: () => {

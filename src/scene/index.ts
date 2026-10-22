@@ -12,6 +12,8 @@ export interface LibraryScene {
   /** Fly to a book and walk to its shelf (or, short, just the last of the walk); resolves when standing in front of it. */
   journey(target: JourneyTarget, events: JourneyEvents, short?: boolean): Promise<void>;
   skip(): void;
+  /** Walk on after the visitor took over the guided walk. */
+  resume(): void;
   /** Take the volume off the shelf and open it; resolves once it's open. */
   reveal(): Promise<void>;
   /** Put the volume back. */
@@ -96,6 +98,25 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
     hover: (p, x, y) => wandererEvents.hover?.(p, x, y),
     moved: () => wandererEvents.moved?.(),
   });
+  // dragging or tapping during the guided walk takes over; looking around works as when wandering
+  const canvas = renderer.domElement;
+  let holdDrag: number | null = null;
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!director.guiding) return;
+    holdDrag = e.pointerId;
+    canvas.setPointerCapture(e.pointerId);
+    director.hold();
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (holdDrag !== e.pointerId) return;
+    const k = e.pointerType === 'mouse' ? 0.0032 : 0.0052;
+    director.turn(-e.movementX * k, e.movementY * k);
+  });
+  const release = (e: PointerEvent) => {
+    if (holdDrag === e.pointerId) holdDrag = null;
+  };
+  canvas.addEventListener('pointerup', release);
+  canvas.addEventListener('pointercancel', release);
   container.appendChild(renderer.domElement);
   renderer.domElement.style.cssText = 'display:block;width:100%;height:100%';
   resize();
@@ -159,6 +180,7 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
     tier: () => tier,
     journey: (target, events, short) => director.start(target, events, reduced.matches, short),
     skip: () => director.skip(),
+    resume: () => director.resume(),
     reveal: () => director.reveal(),
     shelve: () => director.shelve(),
     release: () => director.clear(),

@@ -1,4 +1,4 @@
-import { Matrix4, PerspectiveCamera, Scene, Vector3 } from 'three';
+import { MathUtils, Matrix4, PerspectiveCamera, Scene, Vector2, Vector3 } from 'three';
 import { ComfortLook, buildRoute, planPath, planPathLasting, standPoint, TRAVEL, WALK, type Plan, type Route } from './journey';
 import { Halo, Trail, clearLamps, lightLamps, routeLamps } from './guide';
 import { ReadingBook } from './book';
@@ -30,6 +30,8 @@ export interface JourneyEvents {
   veil?(opacity: number): void;
   /** 0–1 through the page riffle, to tick the page counter */
   riffle?(p: number): void;
+  /** The visitor has taken over the guided walk (true) or handed it back (false) */
+  held?(held: boolean): void;
 }
 
 const slots = bookSlots();
@@ -38,6 +40,7 @@ const TRAVEL_SECONDS = 8;
 /** A shared link skips the flight: the last stretch of the walk, fading in from the veil. */
 const SHORT_WALK_SECONDS = 2.2;
 const FADE_IN_SECONDS = 0.6;
+const HOLD_PITCH_LIMIT = MathUtils.degToRad(60);
 
 type Step =
   | { kind: 'travel'; plan: Plan; t: number }
@@ -68,6 +71,11 @@ export class Director {
   private inward = new Vector3();
   private revealed: (() => void) | null = null;
   private fade = 0;
+  /** Taken over: the walk waits where it is while the visitor looks around */
+  private held = false;
+  private holdYaw = 0;
+  private holdPitch = 0;
+  private holdSpin = new Vector2();
 
   constructor(
     private readonly camera: PerspectiveCamera,
@@ -79,6 +87,11 @@ export class Director {
 
   get active() {
     return this.step !== null && this.step.kind !== 'stand' && this.step.kind !== 'read';
+  }
+
+  /** On foot along the trail, where the visitor can take over. */
+  get guiding() {
+    return !this.reduced && (this.step?.kind === 'guide' || this.step?.kind === 'arrive');
   }
 
   get standing() {
@@ -158,6 +171,33 @@ export class Director {
     this.arriveAtShelf();
   }
 
+  /** Stop walking and let the visitor look around from here. */
+  hold() {
+    if (!this.guiding || this.held) return;
+    this.held = true;
+    const d = this.camera.getWorldDirection(new Vector3());
+    this.holdYaw = Math.atan2(d.x, -d.z);
+    this.holdPitch = MathUtils.clamp(Math.asin(MathUtils.clamp(d.y, -1, 1)), -HOLD_PITCH_LIMIT, HOLD_PITCH_LIMIT);
+    this.holdSpin.set(0, 0);
+    this.events.held?.(true);
+  }
+
+  /** Look around while held, in radians. */
+  turn(dyaw: number, dpitch: number) {
+    if (!this.held) return;
+    this.holdYaw += dyaw;
+    this.holdPitch = MathUtils.clamp(this.holdPitch + dpitch, -HOLD_PITCH_LIMIT, HOLD_PITCH_LIMIT);
+    this.holdSpin.set(dyaw * 60, dpitch * 60);
+  }
+
+  /** Walk on from where the visitor stopped, turning back to the path. */
+  resume() {
+    if (!this.held) return;
+    this.held = false;
+    this.look.from(this.camera);
+    this.events.held?.(false);
+  }
+
   /** Take any book the visitor picked off its shelf and open it. */
   async browse(instance: number): Promise<{ room: { x: number; y: number }; slot: number }> {
     const { room, slot } = this.library.bookAt(instance);
@@ -213,6 +253,7 @@ export class Director {
     this.step = null;
     this.guideTime = 0;
     this.fade = 0;
+    this.held = false;
   }
 
   update(dt: number, seconds: number) {
@@ -253,7 +294,14 @@ export class Director {
       }
     }
 
-    if (step.kind === 'travel') {
+    if (this.held && (step.kind === 'guide' || step.kind === 'arrive')) {
+      this.lightGuide(dt);
+      // look inertia, as when wandering
+      this.holdYaw += this.holdSpin.x * dt;
+      this.holdPitch = MathUtils.clamp(this.holdPitch + this.holdSpin.y * dt, -HOLD_PITCH_LIMIT, HOLD_PITCH_LIMIT);
+      this.holdSpin.multiplyScalar(Math.exp(-dt / 0.25));
+      this.camera.rotation.set(this.holdPitch, -this.holdYaw, 0, 'YXZ');
+    } else if (step.kind === 'travel') {
       step.t += dt;
       const { u } = step.plan.at(step.t);
       this.camera.position.copy(step.plan.curve.getPointAt(u));
@@ -324,6 +372,10 @@ export class Director {
   }
 
   private arriveAtShelf() {
+    if (this.held) {
+      this.held = false;
+      this.events.held?.(false);
+    }
     this.placeAtShelf();
     this.guideTime = Math.max(this.guideTime, 4);
     this.lightGuide(0);
