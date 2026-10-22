@@ -1,4 +1,4 @@
-import { AdditiveBlending, Color, DoubleSide, ShaderMaterial, Vector2, Vector3, Vector4 } from 'three';
+import { Color, CustomBlending, DoubleSide, OneFactor, OneMinusDstColorFactor, ShaderMaterial, Vector2, Vector3, Vector4 } from 'three';
 import common from './shaders/common.glsl?raw';
 import vert from './shaders/library.vert?raw';
 import frag from './shaders/library.frag?raw';
@@ -67,12 +67,17 @@ export function lampMaterial() {
   });
 }
 
-/** Halo sprites. Size is capped and brightness tone-mapped so they never blow out up close. */
+/**
+ * Halo sprites. Size is capped, and they screen rather than add (src·(1−dst) + dst), so overlapping
+ * halos over an already bright wall can never push it past white.
+ */
 export function glowMaterial() {
   return new ShaderMaterial({
     transparent: true,
     depthWrite: false,
-    blending: AdditiveBlending,
+    blending: CustomBlending,
+    blendSrc: OneMinusDstColorFactor,
+    blendDst: OneFactor,
     uniforms: { uScale: { value: 900 } },
     vertexShader: /* glsl */ `
       uniform float uScale; varying float vDepth;

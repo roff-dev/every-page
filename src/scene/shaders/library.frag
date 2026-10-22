@@ -84,7 +84,11 @@ void main() {
   float halo = exp(-fd * fd * 6.0) * 0.18;
   col += LAMP * uFocusAmount * (vTarget > 0.5 ? 0.1 + 0.06 * vLocal.y : halo);
 
-  col = col / (1.0 + col * 0.32);
+  // tone-map the brightest channel and scale all three alike, so surfaces by a lamp stay lamp-coloured
+  // instead of clipping towards a sour yellow-white; above 0.8 the curve eases into white rather than hitting it
+  float peak = max(max(col.r, col.g), max(col.b, 1e-4));
+  float t = peak / (1.0 + peak * 0.32);
+  col *= (t < 0.8 ? t : 0.8 + 0.2 * (1.0 - exp((0.8 - t) / 0.2))) / peak;
   float dist = length(vWorld - cameraPosition);
   float fog = 1.0 - exp(-pow(dist * uFogDensity, 1.55));
   col = mix(col, uFog, clamp(fog, 0.0, 1.0));
