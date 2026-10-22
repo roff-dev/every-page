@@ -38,6 +38,9 @@ const ogImage = new URL('/og.png', Astro.site);
     <meta property="og:description" content={description} />
     {!noindex && <meta property="og:url" content={canonical} />}
     <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`${site.name}: looking down a lamplit shaft of hexagonal library floors that goes on without end.`} />
     <meta name="twitter:card" content="summary_large_image" />
     <slot name="head" />
   </head>
