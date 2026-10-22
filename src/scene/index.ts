@@ -11,6 +11,10 @@ export interface LibraryScene {
   /** Fly to a book and walk to its shelf; resolves when standing in front of it. */
   journey(target: JourneyTarget, events: JourneyEvents): Promise<void>;
   skip(): void;
+  /** Take the volume off the shelf and open it; resolves once it's open. */
+  reveal(): Promise<void>;
+  /** Put the volume back. */
+  shelve(): void;
   /** Let go of a journey's props and drift again. */
   release(): void;
   dispose(): void;
@@ -137,6 +141,8 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
     tier: () => tier,
     journey: (target, events) => director.start(target, events, reduced.matches),
     skip: () => director.skip(),
+    reveal: () => director.reveal(),
+    shelve: () => director.shelve(),
     release: () => director.clear(),
     dispose() {
       renderer.setAnimationLoop(null);

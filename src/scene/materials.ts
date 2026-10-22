@@ -28,6 +28,7 @@ export function libraryMaterial({ books = false } = {}) {
       uGuide: { value: GUIDE_LIGHTS },
       uTargetBook: { value: new Vector3(1e6, 0, 0) },
       uTargetColour: { value: new Vector3(0.72, 0.29, 0.2) },
+      uHideTarget: { value: 0 },
     },
     vertexShader: common + vert,
     fragmentShader: common + frag,

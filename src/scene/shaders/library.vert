@@ -3,6 +3,7 @@ attribute vec3 detail;
 uniform vec2 uRoomOffset; // whole rooms between world origin and the library's real coordinates
 uniform vec3 uTargetBook; // the slot of the book a search leads to
 uniform vec3 uTargetColour;
+uniform float uHideTarget; // 1 once the real book has been taken off the shelf
 const float TARGET_HEIGHT = 0.47;
 
 varying vec3 vWorld;
@@ -33,6 +34,7 @@ void main() {
     bool target = distance(origin, uTargetBook) < 0.01;
     if (target) height = TARGET_HEIGHT;
     vTarget = target ? 1.0 : 0.0;
+    if (target && uHideTarget > 0.5) pos = vec3(0.0);
     pos.y = (pos.y + 0.5) * height;
     pos.z *= 0.88 + 0.12 * hash13(vec3(room.yx, slot + 7.0));
     if (target) pos.z += 0.25; // stands a little proud of its neighbours

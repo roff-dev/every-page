@@ -1,6 +1,7 @@
 import { Matrix4, PerspectiveCamera, Scene, Vector3 } from 'three';
 import { ComfortLook, buildRoute, planPath, planPathLasting, standPoint, TRAVEL, WALK, type Plan, type Route } from './journey';
 import { Halo, Trail, clearLamps, lightLamps, routeLamps } from './guide';
+import { ReadingBook } from './book';
 import { bookSlots, sideFrame } from './room';
 import { FLOOR_HEIGHT, PITCH_X, SHELVED_SIDES } from './dimensions';
 import type { Library } from './library';
@@ -18,7 +19,7 @@ export interface JourneyTarget {
   colour: readonly [number, number, number];
 }
 
-export type Phase = 'travel' | 'arrive' | 'guide' | 'stand';
+export type Phase = 'travel' | 'arrive' | 'guide' | 'stand' | 'pull' | 'open' | 'read';
 
 export interface JourneyEvents {
   phase?(phase: Phase): void;
@@ -26,6 +27,8 @@ export interface JourneyEvents {
   progress?(p: number): void;
   /** Reduced motion: cover or uncover the view (0–1) */
   veil?(opacity: number): void;
+  /** 0–1 through the page riffle, to tick the page counter */
+  riffle?(p: number): void;
 }
 
 const slots = bookSlots();
@@ -37,7 +40,10 @@ type Step =
   | { kind: 'arrive'; t: number }
   | { kind: 'guide'; plan: Plan; t: number }
   | { kind: 'veil'; t: number; to: 'out' | 'in' }
-  | { kind: 'stand' };
+  | { kind: 'stand' }
+  | { kind: 'pull'; t: number }
+  | { kind: 'open'; t: number }
+  | { kind: 'read' };
 
 /** Moves the camera through a search: the flight, the arrival and the guided walk to the shelf. */
 export class Director {
@@ -53,6 +59,10 @@ export class Director {
   private reduced = false;
   private resolve: (() => void) | null = null;
   private guideTime = 0;
+  private reading: ReadingBook | null = null;
+  private slotWorld = new Matrix4();
+  private inward = new Vector3();
+  private revealed: (() => void) | null = null;
 
   constructor(
     private readonly camera: PerspectiveCamera,
@@ -63,11 +73,11 @@ export class Director {
   ) {}
 
   get active() {
-    return this.step !== null && this.step.kind !== 'stand';
+    return this.step !== null && this.step.kind !== 'stand' && this.step.kind !== 'read';
   }
 
   get standing() {
-    return this.step?.kind === 'stand';
+    return this.step?.kind === 'stand' || this.step?.kind === 'read';
   }
 
   /** World position of the target book's spine centre, once a journey has begun. */
@@ -87,9 +97,9 @@ export class Director {
     const slot = target.wall * 160 + target.shelf * 32 + target.volume;
     // the room is only known after the route; build once to find it, then place the book
     const room = { x: centre.x + Math.sign(target.east || 1) * target.rooms, y: centre.y + target.floors };
-    const slotOrigin = new Vector3().setFromMatrixPosition(
-      new Matrix4().makeTranslation(room.x * PITCH_X, room.y * FLOOR_HEIGHT, 0).multiply(slots[slot]!),
-    );
+    this.slotWorld.makeTranslation(room.x * PITCH_X, room.y * FLOOR_HEIGHT, 0).multiply(slots[slot]!);
+    this.inward.copy(sideFrame(side).inward);
+    const slotOrigin = new Vector3().setFromMatrixPosition(this.slotWorld);
     this.book.copy(slotOrigin).setY(slotOrigin.y + TARGET_HEIGHT / 2);
     this.route = buildRoute(this.camera.position, centre, target.east, target.rooms, target.floors, side, this.book);
     this.stand.copy(standPoint(this.book, side, room.y * FLOOR_HEIGHT));
@@ -124,8 +134,30 @@ export class Director {
     this.arriveAtShelf();
   }
 
+  /** Take the volume off the shelf, bring it to the reader and open it. Resolves once it's open. */
+  reveal(): Promise<void> {
+    if (this.step?.kind !== 'stand') return Promise.resolve();
+    this.reading = new ReadingBook(this.slotWorld, this.inward, this.library.bookMaterial.uniforms.uTargetColour!.value.toArray());
+    this.scene.add(this.reading.group);
+    this.library.bookMaterial.uniforms.uHideTarget!.value = 1;
+    this.prepare();
+    this.step = { kind: 'pull', t: 0 };
+    this.events.phase?.('pull');
+    return new Promise((r) => (this.revealed = r));
+  }
+
+  /** Put the volume back on its shelf. */
+  shelve() {
+    this.reading?.group.removeFromParent();
+    this.reading?.dispose();
+    this.reading = null;
+    this.library.bookMaterial.uniforms.uHideTarget!.value = 0;
+    if (this.step?.kind === 'read' || this.step?.kind === 'pull' || this.step?.kind === 'open') this.step = { kind: 'stand' };
+  }
+
   /** Drop the journey's props and glow, back to the plain library. */
   clear() {
+    this.shelve();
     this.trail?.mesh.removeFromParent();
     this.trail?.dispose();
     this.trail = null;
@@ -146,6 +178,34 @@ export class Director {
     if (!step) return;
     this.trail?.tick(seconds);
     if (step.kind === 'stand') this.lightGuide(dt);
+    // once the volume is off the shelf, its glow and halo have done their job
+    if (step.kind === 'pull' || step.kind === 'open' || step.kind === 'read') {
+      if (this.halo) this.halo.amount = 0;
+      this.library.bookMaterial.uniforms.uFocusAmount!.value = 0;
+      this.library.shellMaterial.uniforms.uFocusAmount!.value *= 0.9;
+    }
+
+    if (step.kind === 'pull') {
+      step.t += dt;
+      const k = Math.min(1, step.t / (this.reduced ? 0.6 : 1.6));
+      this.reading!.pull(k, this.camera);
+      if (k >= 1) {
+        this.step = { kind: 'open', t: 0 };
+        this.events.phase?.('open');
+      }
+    } else if (step.kind === 'open') {
+      step.t += dt;
+      const k = Math.min(1, step.t / (this.reduced ? 0.5 : 1.4));
+      this.reading!.pull(1, this.camera);
+      this.reading!.open(k, !this.reduced);
+      this.events.riffle?.(Math.min(1, Math.max(0, (k - 0.35) / 0.65)));
+      if (k >= 1) {
+        this.step = { kind: 'read' };
+        this.events.phase?.('read');
+        this.revealed?.();
+        this.revealed = null;
+      }
+    }
 
     if (step.kind === 'travel') {
       step.t += dt;
