@@ -28,35 +28,22 @@ import Base from '../layouts/Base.astro';
         autocapitalize="none"
         spellcheck="false"
         placeholder="A sentence, a name, a line you can't forget…"
+        aria-describedby="reads-as search-note"
       ></textarea>
+      <p class="reads-as" id="reads-as" data-reads-as hidden>The library will read this as <q></q></p>
+      <p class="note" id="search-note" data-note role="status" hidden></p>
       <div class="card-actions">
         <button class="find" type="submit">Find it</button>
         <button class="random" type="button" id="random">Open a random volume</button>
+        <span class="counter" data-counter hidden></span>
       </div>
     </form>
   </main>
 </Base>
 
 <script>
-  const container = document.getElementById('scene')!;
-  const supportsWebGL2 = () => {
-    try {
-      return !!document.createElement('canvas').getContext('webgl2');
-    } catch {
-      return false;
-    }
-  };
-
-  // The 3D library loads after first paint, so the title and search card are usable at once
-  const start = async () => {
-    if (!supportsWebGL2()) return;
-    const { mountLibrary } = await import('../scene');
-    const scene = await mountLibrary(container);
-    requestAnimationFrame(() => requestAnimationFrame(() => scene.canvas.classList.add('shown')));
-  };
-  const idle = (cb: () => void) => ('requestIdleCallback' in window ? requestIdleCallback(cb, { timeout: 1500 }) : setTimeout(cb, 200));
-  if (document.readyState === 'complete') idle(start);
-  else addEventListener('load', () => idle(start), { once: true });
+  import { boot } from '../app/main';
+  boot();
 </script>
 
 <style>
@@ -199,6 +186,49 @@ import Base from '../layouts/Base.astro';
   textarea:focus-visible {
     outline: none;
     box-shadow: 0 2px 0 var(--lamplight);
+  }
+
+  .reads-as {
+    margin-top: var(--space-1);
+    font-size: var(--step--1);
+    line-height: 1.45;
+    color: var(--faded);
+  }
+
+  .reads-as q {
+    display: block;
+    margin-top: 0.15rem;
+    color: var(--ink);
+    font-family: var(--font-page);
+    font-size: 0.95em;
+    quotes: none;
+    overflow-wrap: anywhere;
+  }
+
+  .reads-as :global(u) {
+    text-decoration-color: var(--rust);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.18em;
+  }
+
+  .note {
+    margin-top: var(--space-1);
+    font-size: var(--step--1);
+    color: var(--rust);
+  }
+
+  .counter {
+    margin-left: auto;
+    font-size: var(--step--1);
+    font-variant-numeric: tabular-nums;
+    color: var(--faded);
+  }
+
+  .find:disabled {
+    background: var(--walnut);
+    color: var(--muted);
+    opacity: 0.55;
+    cursor: default;
   }
 
   .card-actions {

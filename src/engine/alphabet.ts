@@ -23,7 +23,10 @@ export interface Normalised {
   truncated: boolean;
 }
 
-/** Rewrite any input into the library's 29 symbols, recording every change for the visitor. */
+/**
+ * Rewrite any input into the library's 29 symbols, recording every change for the visitor.
+ * Spaces are collapsed and trimmed: nobody means to search for a run of them.
+ */
 export function normalise(input: string): Normalised {
   let text = '';
   const changes: Change[] = [];
@@ -47,6 +50,8 @@ export function normalise(input: string): Normalised {
         continue;
       }
     }
+    // runs of spaces (often left behind by removed characters) collapse to one, and none lead
+    if (out === ' ' && (text === '' || text.endsWith(' '))) continue;
     if (text.length + out.length > PAGE_LENGTH) {
       truncated = true;
       break;
@@ -55,6 +60,7 @@ export function normalise(input: string): Normalised {
     if (out !== '' && out !== lower) changes.push({ kind: 'altered', from: ch, to: out, at: text.length });
     text += out;
   }
+  if (text.endsWith(' ')) text = text.slice(0, -1);
   return { text, changes, removed, truncated };
 }
 
