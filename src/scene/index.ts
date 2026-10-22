@@ -25,7 +25,9 @@ export interface LibraryScene {
   /** Walk to the next gallery (+1 east, -1 west) or up or down a floor. */
   go(way: 'east' | 'west' | 'up' | 'down'): void;
   /** Take a picked book off its shelf and open it; resolves with where it was. */
-  browse(instance: number): Promise<{ room: { x: number; y: number }; slot: number }>;
+  browse(instance: number, events?: JourneyEvents): Promise<{ room: { x: number; y: number }; slot: number }>;
+  /** Called at each footfall while walking */
+  onStep: (() => void) | null;
   /** The room the camera is in, in whole rooms (library coordinates). */
   room(): { x: number; y: number };
   /** Which room and slot a picked book is, without taking it down. */
@@ -36,6 +38,8 @@ export interface LibraryScene {
 export type { JourneyTarget, JourneyEvents, WanderEvents };
 
 const REBASE_DISTANCE = 400;
+/** Metres between footfalls at walking pace */
+const STRIDE = 0.78;
 
 const VIEWS = {
   // the landing view: across the railing and down the air shaft, drifting very slowly
@@ -157,6 +161,20 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
 
   let last = performance.now();
   watch.reset(last);
+  const lastPosition = camera.position.clone();
+  let stride = 0;
+  const footfalls = () => {
+    const p = camera.position;
+    const moved = Math.hypot(p.x - lastPosition.x, p.z - lastPosition.z) + Math.abs(p.y - lastPosition.y) * 0.6;
+    lastPosition.copy(p);
+    // jumps (a cut to the shelf, a rebase) aren't steps
+    const onFoot = (director.guiding && !director.holding) || wanderer.active;
+    if (!onFoot || moved > 0.5) return void (stride = 0);
+    stride += moved;
+    if (stride < STRIDE) return;
+    stride = 0;
+    api.onStep?.();
+  };
   renderer.setAnimationLoop((now: number) => {
     const frameMs = now - last;
     watch.sample(now, frameMs);
@@ -166,6 +184,7 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
     if (director.active || director.standing) director.update(dt, now / 1000);
     else if (wanderer.active) wanderer.update(dt);
     else idleView()(camera, reduced.matches ? 0 : now);
+    footfalls();
     if (!director.active) rebase();
     library.follow(camera.position.x, camera.position.y);
     renderer.render(scene, camera);
@@ -175,7 +194,8 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
   observer.observe(container);
   if (import.meta.env.DEV) Object.assign(window, { __scene: { renderer, camera, library, tier: () => tier } });
 
-  return {
+  const api: LibraryScene = {
+    onStep: null,
     canvas: renderer.domElement,
     tier: () => tier,
     journey: (target, events, short) => director.start(target, events, reduced.matches, short),
@@ -193,7 +213,7 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
       if (way === 'east' || way === 'west') wanderer.east(way === 'east' ? 1 : -1);
       else wanderer.floor(way === 'up' ? 1 : -1);
     },
-    browse: (instance) => director.browse(instance),
+    browse: (instance, events) => director.browse(instance, events),
     // from the camera itself, so it's right even before the rooms have re-centred this frame
     room: () => ({
       x: Math.round(camera.position.x / PITCH_X) + library.roomOffset.x,
@@ -206,6 +226,7 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
       renderer.dispose();
     },
   };
+  return api;
 }
 
 /** Development-only frame time readout, for checking real phones. */

@@ -6,7 +6,8 @@ import { routeCard } from './routeCard';
 import { formatLink, parseLink, type Anchor, type Link, type Move } from '../engine/links';
 import { exists, fromIndex, neighbour, toIndex, type Location } from '../engine/location';
 import { PAGE_COUNT } from '../engine/constants';
-import type { LibraryScene } from '../scene';
+import type { JourneyEvents, LibraryScene } from '../scene';
+import type { Sound } from './sound';
 
 const supportsWebGL2 = () => {
   try {
@@ -73,6 +74,44 @@ export function boot() {
   void sceneReady.then((s) => {
     scene = s;
     document.body.classList.toggle('reading-room', !s);
+    if (s) s.onStep = () => sound?.step();
+  });
+
+  let sound: Sound | null = null;
+  let soundOn = false;
+  // one in the footer, one among the wandering controls; both show the same state
+  const soundToggles = [...document.querySelectorAll<HTMLButtonElement>('[data-sound]')];
+  const toggleSound = async () => {
+    soundOn = !soundOn;
+    for (const t of soundToggles) {
+      t.setAttribute('aria-pressed', String(soundOn));
+      t.querySelector('[data-sound-state]')!.textContent = soundOn ? 'on' : 'off';
+    }
+    if (soundOn && !sound) {
+      const { createSound } = await import('./sound');
+      sound ??= createSound();
+      sound.reading(document.body.dataset.state === 'reading');
+    }
+    sound?.setEnabled(soundOn);
+  };
+  for (const t of soundToggles) {
+    // without Web Audio there's nothing to turn on
+    if ('AudioContext' in window) t.addEventListener('click', () => void toggleSound());
+    else (t.closest('li') ?? t).hidden = true;
+  }
+
+  /** The book's sounds follow the reveal: off the shelf, the cover, the pages, and a chime on arrival. */
+  const withSound = (events: JourneyEvents): JourneyEvents => ({
+    ...events,
+    phase(phase) {
+      events.phase?.(phase);
+      if (phase === 'stand') sound?.chime();
+      else if (phase === 'pull') sound?.play('slide');
+      else if (phase === 'open') {
+        sound?.play('open');
+        sound?.riffle();
+      }
+    },
   });
   const route = routeCard(document.getElementById('route')!);
 
@@ -104,6 +143,7 @@ export function boot() {
     const { openReader } = await import('./reader');
     history.replaceState(null, '', link(0n));
     document.body.dataset.state = 'reading';
+    sound?.reading(true);
     reading = openReader({
       index,
       highlight,
@@ -115,6 +155,8 @@ export function boot() {
       onClose: () => {
         reading?.close();
         reading = null;
+        sound?.reading(false);
+        sound?.play('close');
         if (!scene) {
           document.body.dataset.state = '';
           form.querySelector('textarea')!.focus();
@@ -152,7 +194,7 @@ export function boot() {
       position ??= await landing(s);
       const here = moveFrom(position, s.room()).hexagon;
       const target = targetFor(location);
-      await s.journey(short ? { ...target, rooms: 1, floors: 0 } : target, journey.begin(here, location, short), short);
+      await s.journey(short ? { ...target, rooms: 1, floors: 0 } : target, withSound(journey.begin(here, location, short)), short);
       const room = s.room();
       position = move
         ? { anchor, hexagon: neighbour(location.hexagon, -move.east, -move.up), room: { x: room.x - move.east, y: room.y - move.up } }
@@ -246,7 +288,7 @@ export function boot() {
 
   async function browse(s: LibraryScene, instance: number) {
     wander.hide();
-    const { room, slot } = await s.browse(instance);
+    const { room, slot } = await s.browse(instance, withSound({}));
     const { move, index } = locationOf(room, slot);
     const anchor = position!.anchor;
     await read(index, (offset) => formatLink({ anchor, offset, move }), null, null);

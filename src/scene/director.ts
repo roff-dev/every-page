@@ -94,6 +94,10 @@ export class Director {
     return !this.reduced && (this.step?.kind === 'guide' || this.step?.kind === 'arrive');
   }
 
+  get holding() {
+    return this.held;
+  }
+
   get standing() {
     return this.step?.kind === 'stand' || this.step?.kind === 'read';
   }
@@ -199,11 +203,11 @@ export class Director {
   }
 
   /** Take any book the visitor picked off its shelf and open it. */
-  async browse(instance: number): Promise<{ room: { x: number; y: number }; slot: number }> {
+  async browse(instance: number, events: JourneyEvents = {}): Promise<{ room: { x: number; y: number }; slot: number }> {
     const { room, slot } = this.library.bookAt(instance);
     const off = this.library.roomOffset;
     this.clear();
-    this.events = {};
+    this.events = events;
     this.reduced = false;
     this.slotWorld.makeTranslation((room.x - off.x) * PITCH_X, (room.y - off.y) * FLOOR_HEIGHT, 0).multiply(slots[slot]!);
     this.inward.copy(sideFrame(SHELVED_SIDES[Math.floor(slot / 160)]!).inward);

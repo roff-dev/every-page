@@ -1,5 +1,12 @@
 ---
 import { site } from '../site';
+
+interface Props {
+  /** Offer the sound toggle (only the library itself makes any sound) */
+  sound?: boolean;
+}
+
+const { sound = false } = Astro.props;
 ---
 <footer class="footer">
   <p class="signature">Made by <a href={site.author.href}>{site.author.name}</a></p>
@@ -8,12 +15,20 @@ import { site } from '../site';
       <li><a href="/how-it-works">How it works</a></li>
       <li><a href="/privacy">Privacy</a></li>
       <li><a href="/terms">Terms</a></li>
+      {sound && (
+        <li>
+          <button class="sound" type="button" aria-pressed="false" data-sound>Sound <span aria-hidden="true" data-sound-state>off</span></button>
+        </li>
+      )}
     </ul>
   </nav>
 </footer>
 
 <style>
   .footer {
+    /* above the landing page's fixed scene, which otherwise swallows its clicks */
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -38,8 +53,28 @@ import { site } from '../site';
     list-style: none;
   }
 
-  a {
+  a,
+  .sound {
     display: inline-block;
     padding-block: 0.6rem;
+  }
+
+  .sound {
+    min-height: 2.75rem;
+    padding-inline: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--brass);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+  }
+
+  .sound:hover,
+  .sound[aria-pressed='true'] [data-sound-state] {
+    color: var(--lamplight);
   }
 </style>

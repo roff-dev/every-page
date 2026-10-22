@@ -10,9 +10,11 @@ interface Props {
   title?: string;
   description?: string;
   footer?: boolean;
+  /** Offer the sound toggle in the footer */
+  sound?: boolean;
 }
 
-const { title, description = site.description, footer = true } = Astro.props;
+const { title, description = site.description, footer = true, sound = false } = Astro.props;
 const fullTitle = title ? `${title} | ${site.name}` : site.name;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL('/og.png', Astro.site);
@@ -39,6 +41,6 @@ const ogImage = new URL('/og.png', Astro.site);
   </head>
   <body>
     <slot />
-    {footer && <Footer />}
+    {footer && <Footer sound={sound} />}
   </body>
 </html>

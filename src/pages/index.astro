@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import SearchCard from '../components/SearchCard.astro';
 ---
-<Base>
+<Base sound>
   <main class="poster">
     <div class="scene" id="scene" aria-hidden="true">
       <picture>
@@ -55,6 +55,7 @@ import SearchCard from '../components/SearchCard.astro';
       <div class="wander-actions">
         <button class="round" type="button" data-search>Search</button>
         <button class="round" type="button" data-random>Random</button>
+        <button class="round" type="button" aria-pressed="false" data-sound>Sound <span class="round-state" aria-hidden="true" data-sound-state>off</span></button>
       </div>
       <p class="spine-label" data-spine hidden></p>
     </section>
@@ -173,6 +174,10 @@ import SearchCard from '../components/SearchCard.astro';
 
   .scene::after {
     transition: opacity 1s var(--ease-settle);
+  }
+
+  :global(body:is([data-state='journey'], [data-state='reading'], [data-state='wander'], [data-state='route']) .footer) {
+    visibility: hidden;
   }
 
   .journey {
@@ -399,6 +404,16 @@ import SearchCard from '../components/SearchCard.astro';
     background: var(--night);
     font-family: var(--font-display);
     font-variation-settings: 'SOFT' 100;
+  }
+
+  .round-state {
+    display: block;
+    font-size: 0.85em;
+    color: var(--muted);
+  }
+
+  .round[aria-pressed='true'] .round-state {
+    color: var(--lamplight);
   }
 
   .spine-label {
