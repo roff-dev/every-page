@@ -30,6 +30,28 @@ import Base from '../layouts/Base.astro';
   </main>
 </Base>
 
+<script>
+  const container = document.getElementById('scene')!;
+  const supportsWebGL2 = () => {
+    try {
+      return !!document.createElement('canvas').getContext('webgl2');
+    } catch {
+      return false;
+    }
+  };
+
+  // The 3D library loads after first paint, so the title and search card are usable at once
+  const start = async () => {
+    if (!supportsWebGL2()) return;
+    const { mountLibrary } = await import('../scene');
+    const scene = mountLibrary(container);
+    requestAnimationFrame(() => requestAnimationFrame(() => scene.canvas.classList.add('shown')));
+  };
+  const idle = (cb: () => void) => ('requestIdleCallback' in window ? requestIdleCallback(cb, { timeout: 1500 }) : setTimeout(cb, 200));
+  if (document.readyState === 'complete') idle(start);
+  else addEventListener('load', () => idle(start), { once: true });
+</script>
+
 <style>
   .poster {
     position: relative;
@@ -47,6 +69,34 @@ import Base from '../layouts/Base.astro';
     background:
       radial-gradient(60% 45% at 50% 62%, rgb(255 196 107 / 0.16), transparent 70%),
       radial-gradient(120% 80% at 50% 110%, #4a2a1c, var(--night) 70%);
+  }
+
+  /* keeps the title and lede legible over a bright scene */
+  .scene::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to bottom, rgb(43 23 16 / 0.82), rgb(43 23 16 / 0.45) 30%, transparent 52%),
+      linear-gradient(to top, rgb(43 23 16 / 0.6), transparent 30%);
+    pointer-events: none;
+  }
+
+  @media (min-width: 64rem) {
+    .scene::after {
+      background:
+        radial-gradient(70% 75% at 0% 0%, rgb(43 23 16 / 0.85), rgb(43 23 16 / 0.4) 55%, transparent 80%),
+        linear-gradient(to top, rgb(43 23 16 / 0.5), transparent 25%);
+    }
+  }
+
+  .scene :global(canvas) {
+    opacity: 0;
+    transition: opacity 1.4s var(--ease-settle);
+  }
+
+  .scene :global(canvas.shown) {
+    opacity: 1;
   }
 
   .masthead h1 {
