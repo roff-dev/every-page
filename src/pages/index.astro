@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import SearchCard from '../components/SearchCard.astro';
 ---
 <Base>
   <main class="poster">
@@ -17,28 +18,19 @@ import Base from '../layouts/Base.astro';
       <p class="lede">Every page that could ever be written is already on these shelves. Yours too.</p>
     </header>
 
-    <form class="card" id="search" role="search" action="/" method="get">
-      <label class="card-label" for="query">What should the library find?</label>
-      <textarea
-        id="query"
-        name="q"
-        rows="2"
-        maxlength="6000"
-        autocomplete="off"
-        autocapitalize="none"
-        spellcheck="false"
-        placeholder="A sentence, a name, a line you can't forget…"
-        aria-describedby="reads-as search-note"
-      ></textarea>
-      <p class="reads-as" id="reads-as" data-reads-as hidden>The library will read this as <q></q></p>
-      <p class="note" id="search-note" data-note role="status" hidden></p>
-      <div class="card-actions">
-        <button class="find" type="submit">Find it</button>
-        <button class="random" type="button" id="random">Open a random volume</button>
-        <button class="random" type="button" id="wander-start">Wander the galleries</button>
-        <span class="counter" data-counter hidden></span>
+    <SearchCard>
+      <button class="random" type="button" id="random">Open a random volume</button>
+      <button class="random" type="button" id="wander-start">Wander the galleries</button>
+    </SearchCard>
+
+    <section class="route" id="route" aria-labelledby="route-title">
+      <div class="route-card">
+        <p class="route-note">This browser can't draw the galleries, so here is the way to your shelf.</p>
+        <h2 id="route-title">Hexagon <span class="route-hex" data-route-hex></span></h2>
+        <ol class="route-steps" data-route-steps></ol>
+        <button class="open-book" type="button" data-route-open>Open the book</button>
       </div>
-    </form>
+    </section>
 
     <section class="journey" id="journey" aria-label="Journey to your page">
       <p class="caption" data-caption aria-live="polite"></p>
@@ -151,122 +143,21 @@ import Base from '../layouts/Base.astro';
     color: var(--muted);
   }
 
-  .card {
+  .poster > :global(.card) {
     grid-row: 3;
-    width: min(100%, 30rem);
-    padding: var(--space-3) var(--space-3) var(--space-2);
-    background: var(--parchment);
-    color: var(--ink);
-    border-radius: var(--radius-card);
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.5) inset,
-      0 24px 60px -20px rgb(0 0 0 / 0.55);
-    position: relative;
-  }
-
-  /* the punched hole of a catalogue card */
-  .card::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 0.55rem;
-    width: 0.7rem;
-    height: 0.7rem;
-    translate: -50% 0;
-    border-radius: 50%;
-    background: var(--night);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 0.35);
-  }
-
-  .card-label {
-    display: block;
-    font-family: var(--font-display);
-    font-variation-settings: 'SOFT' 100;
-    font-size: var(--step-1);
-    line-height: 1.2;
-    padding-bottom: var(--space-1);
-    border-bottom: 1px solid var(--rust);
-  }
-
-  textarea {
-    display: block;
-    width: 100%;
-    margin-top: var(--space-1);
-    padding: 0.5rem 0;
-    border: 0;
-    background:
-      repeating-linear-gradient(transparent 0 calc(1.6em - 1px), rgb(138 59 38 / 0.25) calc(1.6em - 1px) 1.6em);
-    color: var(--ink);
-    font-size: var(--step-0);
-    line-height: 1.6em;
-    resize: none;
-    field-sizing: content;
-    min-height: 3.2em;
-    max-height: 40dvh;
-  }
-
-  textarea::placeholder {
-    color: var(--faded);
-    font-style: italic;
-  }
-
-  textarea:focus-visible {
-    outline: none;
-    box-shadow: 0 2px 0 var(--lamplight);
-  }
-
-  .reads-as {
-    margin-top: var(--space-1);
-    font-size: var(--step--1);
-    line-height: 1.45;
-    color: var(--faded);
-  }
-
-  .reads-as q {
-    display: block;
-    margin-top: 0.15rem;
-    color: var(--ink);
-    font-family: var(--font-page);
-    font-size: 0.95em;
-    quotes: none;
-    overflow-wrap: anywhere;
-  }
-
-  .reads-as :global(u) {
-    text-decoration-color: var(--rust);
-    text-decoration-thickness: 2px;
-    text-underline-offset: 0.18em;
-  }
-
-  .note {
-    margin-top: var(--space-1);
-    font-size: var(--step--1);
-    color: var(--rust);
-  }
-
-  .counter {
-    margin-left: auto;
-    font-size: var(--step--1);
-    font-variant-numeric: tabular-nums;
-    color: var(--faded);
-  }
-
-  .find:disabled {
-    background: var(--walnut);
-    color: var(--muted);
-    opacity: 0.55;
-    cursor: default;
   }
 
   .masthead,
-  .card {
+  .poster > :global(.card) {
     transition: opacity 600ms var(--ease-settle), translate 600ms var(--ease-settle);
   }
 
   :global(body[data-state='journey']) .masthead,
-  :global(body[data-state='journey']) .card,
+  :global(body[data-state='journey'] .card),
   :global(body[data-state='reading']) .masthead,
-  :global(body[data-state='reading']) .card {
+  :global(body[data-state='reading'] .card),
+  :global(body[data-state='route']) .masthead,
+  :global(body[data-state='route'] .card) {
     opacity: 0;
     translate: 0 1.5rem;
     pointer-events: none;
@@ -375,7 +266,7 @@ import Base from '../layouts/Base.astro';
   }
 
   :global(body[data-state='wander']) .masthead,
-  :global(body[data-state='wander']) .card {
+  :global(body[data-state='wander'] .card) {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -501,16 +392,95 @@ import Base from '../layouts/Base.astro';
     white-space: nowrap;
   }
 
-  .card-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-1) var(--space-3);
-    margin-top: var(--space-2);
-    padding-bottom: var(--space-3);
+  /* without WebGL: the way to the shelf, drawn as a route card */
+  :global(body.reading-room) #wander-start {
+    display: none;
   }
 
-  .find {
+  .route {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    padding: var(--space-3) var(--gutter);
+    overflow-y: auto;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 500ms var(--ease-settle), visibility 0s 500ms;
+  }
+
+  :global(body[data-state='route']) .route {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 500ms var(--ease-settle);
+  }
+
+  .route-card {
+    width: min(100%, 40rem);
+    padding: var(--space-4) var(--space-3) var(--space-3);
+    border-radius: var(--radius-card);
+    background: var(--parchment);
+    color: var(--ink);
+    box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.55);
+  }
+
+  .route-note {
+    font-size: var(--step--1);
+    color: var(--faded);
+  }
+
+  .route h2 {
+    margin-top: var(--space-1);
+    font-size: var(--step-2);
+  }
+
+  .route-hex {
+    font-family: var(--font-page);
+    font-size: 0.6em;
+    overflow-wrap: anywhere;
+  }
+
+  .route-steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3) var(--space-2);
+    margin: var(--space-3) 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 40rem) {
+    .route-steps {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .route-steps :global(li) {
+    display: grid;
+    gap: var(--space-1);
+    align-content: start;
+  }
+
+  .route-steps :global(svg) {
+    width: 100%;
+    max-width: 7rem;
+    height: auto;
+  }
+
+  .route-steps :global(.what) {
+    font-size: var(--step--1);
+    color: var(--faded);
+  }
+
+  .route-steps :global(.which) {
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step-1);
+    line-height: 1.1;
+  }
+
+  .open-book {
     min-height: 2.9rem;
     padding: 0 1.4rem;
     border: 0;
@@ -521,31 +491,10 @@ import Base from '../layouts/Base.astro';
     font-variation-settings: 'SOFT' 100;
     font-size: var(--step-0);
     cursor: pointer;
-    transition: background 200ms var(--ease-settle), transform 200ms var(--ease-settle);
   }
 
-  .find:hover {
+  .open-book:hover {
     background: var(--walnut);
-  }
-
-  .find:active {
-    transform: translateY(1px);
-  }
-
-  .random {
-    min-height: 2.75rem;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--rust);
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.2em;
-    cursor: pointer;
-  }
-
-  .random:hover {
-    color: var(--ink);
   }
 
   @media (min-width: 64rem) {
@@ -554,7 +503,7 @@ import Base from '../layouts/Base.astro';
       padding-inline: max(var(--space-5), var(--gutter));
     }
 
-    .card {
+    .poster > :global(.card) {
       margin-bottom: var(--space-3);
     }
   }

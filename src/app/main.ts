@@ -2,6 +2,7 @@ import { searchCard } from './searchCard';
 import { catalogue } from './catalogue';
 import { journeyUi, targetFor } from './journeyUi';
 import { wanderUi } from './wanderUi';
+import { routeCard } from './routeCard';
 import { formatLink, parseLink, type Anchor, type Link, type Move } from '../engine/links';
 import { exists, fromIndex, neighbour, toIndex, type Location } from '../engine/location';
 import { PAGE_COUNT } from '../engine/constants';
@@ -15,13 +16,18 @@ const supportsWebGL2 = () => {
   }
 };
 
+/** The 3D library, or null where it can't be drawn; everything else still works without it. */
 async function mountScene(container: HTMLElement): Promise<LibraryScene | null> {
   if (!supportsWebGL2()) return null;
-  const { mountLibrary } = await import('../scene');
-  const scene = await mountLibrary(container);
-  const canvas = scene.canvas;
-  requestAnimationFrame(() => requestAnimationFrame(() => canvas.classList.add('shown')));
-  return scene;
+  try {
+    const { mountLibrary } = await import('../scene');
+    const scene = await mountLibrary(container);
+    const canvas = scene.canvas;
+    requestAnimationFrame(() => requestAnimationFrame(() => canvas.classList.add('shown')));
+    return scene;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -54,7 +60,7 @@ export function boot() {
       document.body.dataset.state = '';
       form.querySelector('textarea')!.focus();
     },
-    random: () => void openRandom(),
+    random: () => attempt(openRandom),
     share: () => void sharePlace(),
   });
 
@@ -64,7 +70,23 @@ export function boot() {
     if (document.readyState === 'complete') start();
     else addEventListener('load', start, { once: true });
   });
-  void sceneReady.then((s) => (scene = s));
+  void sceneReady.then((s) => {
+    scene = s;
+    document.body.classList.toggle('reading-room', !s);
+  });
+  const route = routeCard(document.getElementById('route')!);
+
+  /** Run something that needs the catalogue; if it doesn't answer, say so on the card and offer to try again. */
+  function attempt(run: () => Promise<unknown>) {
+    card.trouble(null);
+    run().catch(() => {
+      scene?.release();
+      journey.end();
+      document.body.dataset.state = '';
+      card.setBusy(false);
+      card.trouble(() => attempt(run));
+    });
+  }
 
   /** The landing room is the place a random seed of zero leads to. */
   async function landing(s: LibraryScene): Promise<Position> {
@@ -93,8 +115,13 @@ export function boot() {
       onClose: () => {
         reading?.close();
         reading = null;
-        scene?.shelve();
-        startWandering();
+        if (!scene) {
+          document.body.dataset.state = '';
+          form.querySelector('textarea')!.focus();
+          return;
+        }
+        scene.shelve();
+        attempt(startWandering);
       },
     });
   }
@@ -117,20 +144,22 @@ export function boot() {
     { short = false, move, offset = 0n }: Arrival = {},
   ) {
     const s = await sceneReady;
-    if (!s) return;
     reading?.close();
-    s.release();
     const location = fromIndex(index);
-    position ??= await landing(s);
-    const here = moveFrom(position, s.room()).hexagon;
-    const target = targetFor(location);
-    await s.journey(short ? { ...target, rooms: 1, floors: 0 } : target, journey.begin(here, location, short), short);
-    const room = s.room();
-    position = move
-      ? { anchor, hexagon: neighbour(location.hexagon, -move.east, -move.up), room: { x: room.x - move.east, y: room.y - move.up } }
-      : { anchor, hexagon: location.hexagon, room };
-    await s.reveal();
-    journey.end();
+    if (!s) await route.show(location);
+    else {
+      s.release();
+      position ??= await landing(s);
+      const here = moveFrom(position, s.room()).hexagon;
+      const target = targetFor(location);
+      await s.journey(short ? { ...target, rooms: 1, floors: 0 } : target, journey.begin(here, location, short), short);
+      const room = s.room();
+      position = move
+        ? { anchor, hexagon: neighbour(location.hexagon, -move.east, -move.up), room: { x: room.x - move.east, y: room.y - move.up } }
+        : { anchor, hexagon: location.hexagon, room };
+      await s.reveal();
+      journey.end();
+    }
     await read(index, (o) => formatLink({ anchor, offset: offset + o, ...(move ? { move } : {}) }), highlight, elsewhere);
   }
 
@@ -143,7 +172,7 @@ export function boot() {
       const found = await catalogue.search(anchor.text, anchor.variant);
       anchorIndex = found.index;
       highlight = { offset: found.offset, length: anchor.text.length };
-      elsewhere = () => void find(anchor.text, anchor.variant + 1);
+      elsewhere = () => attempt(() => find(anchor.text, anchor.variant + 1));
     } else if (anchor.kind === 'random') anchorIndex = await catalogue.randomIndex(anchor.seed);
     else anchorIndex = toIndex(anchor.location);
 
@@ -176,7 +205,7 @@ export function boot() {
       const anchor: Anchor = { kind: 'query', text, variant };
       history.replaceState(null, '', formatLink({ anchor, offset: 0n }));
       const found = await catalogue.search(text, variant);
-      await travel(anchor, found.index, { offset: found.offset, length: text.length }, () => void find(text, variant + 1));
+      await travel(anchor, found.index, { offset: found.offset, length: text.length }, () => attempt(() => find(text, variant + 1)));
     } finally {
       card.setBusy(false);
     }
@@ -201,7 +230,7 @@ export function boot() {
       hover: (pick, x, y) => {
         if (!pick) return wander.hover(null, x, y);
         const { room, slot } = s.bookAt(pick.instance);
-        void catalogue.spine(locationOf(room, slot).index).then((t) => wander.hover(t, x, y));
+        void catalogue.spine(locationOf(room, slot).index).then((t) => wander.hover(t, x, y), () => undefined);
       },
     });
     showPlace();
@@ -239,13 +268,13 @@ export function boot() {
     }
   }
 
-  const card = searchCard(form, (text) => void find(text, 0));
+  const card = searchCard(form, (text) => attempt(() => find(text, 0)));
   const follow = () => {
     const link = parseLink(location.hash);
-    if (link) void openLink(link).catch(() => undefined);
+    if (link) attempt(() => openLink(link));
   };
   follow();
   addEventListener('hashchange', follow);
-  document.getElementById('random')!.addEventListener('click', () => void openRandom());
-  document.getElementById('wander-start')!.addEventListener('click', () => void startWandering());
+  document.getElementById('random')!.addEventListener('click', () => attempt(openRandom));
+  document.getElementById('wander-start')!.addEventListener('click', () => attempt(startWandering));
 }

@@ -1,0 +1,189 @@
+---
+/** The catalogue card: the search field with its live "will read as" feedback. Extra actions go in the slot. */
+---
+<form class="card" id="search" role="search" action="/" method="get">
+  <label class="card-label" for="query">What should the library find?</label>
+  <textarea
+    id="query"
+    name="q"
+    rows="2"
+    maxlength="6000"
+    autocomplete="off"
+    autocapitalize="none"
+    spellcheck="false"
+    placeholder="A sentence, a name, a line you can't forget…"
+    aria-describedby="reads-as search-note"
+  ></textarea>
+  <p class="reads-as" id="reads-as" data-reads-as hidden>The library will read this as <q></q></p>
+  <p class="note" id="search-note" data-note role="status" hidden></p>
+  <p class="trouble" data-trouble role="alert" hidden>
+    The catalogue didn't answer. <button class="random" type="button" data-retry>Try again</button>
+  </p>
+  <div class="card-actions">
+    <button class="find" type="submit">Find it</button>
+    <slot />
+    <span class="counter" data-counter hidden></span>
+  </div>
+</form>
+
+<style>
+  .card {
+    width: min(100%, 30rem);
+    padding: var(--space-3) var(--space-3) var(--space-2);
+    background: var(--parchment);
+    color: var(--ink);
+    border-radius: var(--radius-card);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.5) inset,
+      0 24px 60px -20px rgb(0 0 0 / 0.55);
+    position: relative;
+  }
+
+  /* the punched hole of a catalogue card */
+  .card::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0.55rem;
+    width: 0.7rem;
+    height: 0.7rem;
+    translate: -50% 0;
+    border-radius: 50%;
+    background: var(--night);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.35);
+  }
+
+  .card-label {
+    display: block;
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step-1);
+    line-height: 1.2;
+    padding-bottom: var(--space-1);
+    border-bottom: 1px solid var(--rust);
+  }
+
+  textarea {
+    display: block;
+    width: 100%;
+    margin-top: var(--space-1);
+    padding: 0.5rem 0;
+    border: 0;
+    background:
+      repeating-linear-gradient(transparent 0 calc(1.6em - 1px), rgb(138 59 38 / 0.25) calc(1.6em - 1px) 1.6em);
+    color: var(--ink);
+    font-size: var(--step-0);
+    line-height: 1.6em;
+    resize: none;
+    field-sizing: content;
+    min-height: 3.2em;
+    max-height: 40dvh;
+  }
+
+  textarea::placeholder {
+    color: var(--faded);
+    font-style: italic;
+  }
+
+  textarea:focus-visible {
+    outline: none;
+    box-shadow: 0 2px 0 var(--lamplight);
+  }
+
+  .reads-as {
+    margin-top: var(--space-1);
+    font-size: var(--step--1);
+    line-height: 1.45;
+    color: var(--faded);
+  }
+
+  .reads-as q {
+    display: block;
+    margin-top: 0.15rem;
+    color: var(--ink);
+    font-family: var(--font-page);
+    font-size: 0.95em;
+    quotes: none;
+    overflow-wrap: anywhere;
+  }
+
+  .reads-as :global(u) {
+    text-decoration-color: var(--rust);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.18em;
+  }
+
+  .note,
+  .trouble {
+    margin-top: var(--space-1);
+    font-size: var(--step--1);
+    color: var(--rust);
+  }
+
+  .trouble .random {
+    min-height: 2.75rem;
+    margin-left: 0.3rem;
+    font-size: inherit;
+  }
+
+  .counter {
+    margin-left: auto;
+    font-size: var(--step--1);
+    font-variant-numeric: tabular-nums;
+    color: var(--faded);
+  }
+
+  .card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-3);
+    margin-top: var(--space-2);
+    padding-bottom: var(--space-3);
+  }
+
+  .find {
+    min-height: 2.9rem;
+    padding: 0 1.4rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--night);
+    color: var(--lamplight);
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step-0);
+    cursor: pointer;
+    transition: background 200ms var(--ease-settle), transform 200ms var(--ease-settle);
+  }
+
+  .find:hover {
+    background: var(--walnut);
+  }
+
+  .find:active {
+    transform: translateY(1px);
+  }
+
+  .find:disabled {
+    background: var(--walnut);
+    color: var(--muted);
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  .card :global(.random) {
+    min-height: 2.75rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rust);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+  }
+
+  .card :global(.random:hover) {
+    color: var(--ink);
+  }
+</style>

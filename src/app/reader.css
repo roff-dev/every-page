@@ -261,3 +261,16 @@
     justify-content: space-between;
   }
 }
+
+.leaf .trouble {
+  padding: var(--space-3) 0;
+  font-family: var(--font-text);
+  font-size: var(--step-0);
+  color: var(--rust);
+  white-space: normal;
+}
+
+.reader .leaf .trouble .link {
+  color: var(--rust);
+  text-decoration-color: var(--rust);
+}

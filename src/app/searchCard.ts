@@ -5,6 +5,8 @@ export interface SearchCard {
   /** The text as the library will hold it, or null if there's nothing to search for. */
   value(): string | null;
   setBusy(busy: boolean): void;
+  /** Say the catalogue didn't answer, offering to try again; null clears it. */
+  trouble(retry: (() => void) | null): void;
 }
 
 const PREVIEW_CHARS = 180;
@@ -17,6 +19,14 @@ export function searchCard(form: HTMLFormElement, onSearch: (text: string) => vo
   const readsAs = form.querySelector<HTMLElement>('[data-reads-as]')!;
   const note = form.querySelector<HTMLElement>('[data-note]')!;
   const counter = form.querySelector<HTMLElement>('[data-counter]')!;
+  const troubleLine = form.querySelector<HTMLElement>('[data-trouble]')!;
+  let retry: (() => void) | null = null;
+  form.querySelector('[data-retry]')!.addEventListener('click', () => {
+    const again = retry;
+    troubleLine.hidden = true;
+    retry = null;
+    again?.();
+  });
   let current: Normalised = normalise('');
   let announce = 0;
 
@@ -84,6 +94,10 @@ export function searchCard(form: HTMLFormElement, onSearch: (text: string) => vo
     setBusy(busy) {
       find.disabled = busy || current.text.trim() === '';
       form.toggleAttribute('aria-busy', busy);
+    },
+    trouble(again) {
+      retry = again;
+      troubleLine.hidden = again === null;
     },
   };
 }

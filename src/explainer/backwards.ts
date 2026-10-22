@@ -23,8 +23,16 @@ export function backwards(root: HTMLElement) {
       walk.hidden = true;
       return;
     }
-    const found = await catalogue.search(text, 0);
-    const digits = await catalogue.page(found.index);
+    let found, digits;
+    try {
+      found = await catalogue.search(text, 0);
+      digits = await catalogue.page(found.index);
+    } catch {
+      if (ticket !== latest) return;
+      filler.textContent = "The catalogue didn't answer. Change the words to try again.";
+      walk.hidden = true;
+      return;
+    }
     if (ticket !== latest) return;
 
     filler.textContent = `It fills a page with random letters, seeded by your words themselves, and writes them in at character ${(found.offset + 1).toLocaleString('en-GB')}.`;

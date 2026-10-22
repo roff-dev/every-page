@@ -148,7 +148,16 @@ export function openReader(opts: ReaderOptions): Reader {
 
   async function render() {
     const loc = fromIndex(index);
-    const text = await pageText(index);
+    let text: string;
+    try {
+      text = await pageText(index);
+    } catch {
+      if (fromIndex(index).page !== loc.page) return;
+      pageArea.replaceChildren(
+        el('p', { className: 'trouble' }, "The catalogue didn't answer. ", button('Try again', 'link', () => void render())),
+      );
+      return;
+    }
     if (fromIndex(index).page !== loc.page) return; // a newer page was asked for meanwhile
     renderPlate(loc);
     counter.innerHTML = `Page <b>${loc.page + 1}</b> of ${PAGES_PER_VOLUME}`;
@@ -159,9 +168,9 @@ export function openReader(opts: ReaderOptions): Reader {
     pageArea.querySelector('mark')?.scrollIntoView({ block: 'center', inline: 'nearest' });
     pageArea.setAttribute('aria-label', `Page ${loc.page + 1} of ${PAGES_PER_VOLUME}`);
     status.textContent = `Page ${loc.page + 1} of ${PAGES_PER_VOLUME}`;
-    void catalogue.spine(index).then((s) => (title.textContent = s));
+    void catalogue.spine(index).then((s) => (title.textContent = s), () => undefined);
     // the next and previous pages are usually wanted next
-    for (const d of [1n, -1n, 2n]) if (index + d >= 0n && index + d < PAGE_COUNT) void pageText(index + d);
+    for (const d of [1n, -1n, 2n]) if (index + d >= 0n && index + d < PAGE_COUNT) void pageText(index + d).catch(() => undefined);
   }
 
   function renderPlate(loc: Location) {
