@@ -1,5 +1,6 @@
 import { PerspectiveCamera, Scene, WebGLRenderer } from 'three';
 import { Library, yieldToMain } from './library';
+import { Director, type JourneyEvents, type JourneyTarget } from './director';
 import { FOG } from './materials';
 import { FrameWatch, initialTier, lowerTier, TIERS, type Tier } from './quality';
 import { APOTHEM, FLOOR_HEIGHT, PITCH_X } from './dimensions';
@@ -7,8 +8,15 @@ import { APOTHEM, FLOOR_HEIGHT, PITCH_X } from './dimensions';
 export interface LibraryScene {
   readonly canvas: HTMLCanvasElement;
   readonly tier: () => Tier;
+  /** Fly to a book and walk to its shelf; resolves when standing in front of it. */
+  journey(target: JourneyTarget, events: JourneyEvents): Promise<void>;
+  skip(): void;
+  /** Let go of a journey's props and drift again. */
+  release(): void;
   dispose(): void;
 }
+
+export type { JourneyTarget, JourneyEvents };
 
 const REBASE_DISTANCE = 400;
 
@@ -66,6 +74,7 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
   await yieldToMain();
   const library = await Library.create(tier);
   scene.add(library.group);
+  const director = new Director(camera, scene, library, () => void renderer.compileAsync(scene, camera));
   container.appendChild(renderer.domElement);
   renderer.domElement.style.cssText = 'display:block;width:100%;height:100%';
   resize();
@@ -111,8 +120,10 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
     watch.sample(now, frameMs);
     last = now;
     hud?.(frameMs, tier.name);
-    idleView()(camera, reduced.matches ? 0 : now);
-    rebase();
+    const dt = Math.min(0.05, Math.max(0, frameMs / 1000));
+    if (director.active || director.standing) director.update(dt, now / 1000);
+    else idleView()(camera, reduced.matches ? 0 : now);
+    if (!director.active) rebase();
     library.follow(camera.position.x, camera.position.y);
     renderer.render(scene, camera);
   });
@@ -124,6 +135,9 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
   return {
     canvas: renderer.domElement,
     tier: () => tier,
+    journey: (target, events) => director.start(target, events, reduced.matches),
+    skip: () => director.skip(),
+    release: () => director.clear(),
     dispose() {
       renderer.setAnimationLoop(null);
       observer.disconnect();
