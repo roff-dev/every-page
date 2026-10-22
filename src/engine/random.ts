@@ -30,3 +30,30 @@ export function hashString(s: string, seed: number): number {
   }
   return h >>> 0;
 }
+
+const CONSONANTS = 'bcdfghjklmnprstvz';
+const VOWELS = 'aeiou';
+
+/**
+ * Letters for a volume's spine. Borges says they "do not indicate or prefigure" what the pages say,
+ * so they come from the volume's number alone.
+ */
+export function spineTitle(volumeKey: bigint): string {
+  const w = (n: bigint) => Number((volumeKey >> n) & 0xffffffffn) >>> 0;
+  const next = sfc32(w(0n), w(32n), w(64n) ^ 0x5bd1e995, w(96n) ^ 0x27d4eb2f);
+  for (let i = 0; i < 12; i++) next();
+  const words = 1 + (next() % 3);
+  const out: string[] = [];
+  for (let i = 0; i < words; i++) {
+    const length = 3 + (next() % 7);
+    let word = '';
+    let vowel = (next() & 1) === 1;
+    for (let j = 0; j < length; j++) {
+      const pool = vowel ? VOWELS : CONSONANTS;
+      word += pool[next() % pool.length];
+      if (next() % 5 !== 0) vowel = !vowel;
+    }
+    out.push(word);
+  }
+  return out.join(' ');
+}
