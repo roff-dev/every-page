@@ -1,10 +1,13 @@
-import { AdditiveBlending, Color, DoubleSide, ShaderMaterial, Vector2, Vector3 } from 'three';
+import { AdditiveBlending, Color, DoubleSide, ShaderMaterial, Vector2, Vector3, Vector4 } from 'three';
 import common from './shaders/common.glsl?raw';
 import vert from './shaders/library.vert?raw';
 import frag from './shaders/library.frag?raw';
 import { FLOOR_HEIGHT, LAMP_HEIGHT, LAMP_Z, PITCH_X, WALL_TOP } from './dimensions';
 
 export const FOG = new Color(0x2b1710);
+
+/** Lamps along a guided route (xyz, strength). One shared array, read by every material. */
+export const GUIDE_LIGHTS = Array.from({ length: 6 }, () => new Vector4(0, -1e4, 0, 0));
 
 export function libraryMaterial({ books = false } = {}) {
   return new ShaderMaterial({
@@ -22,6 +25,9 @@ export function libraryMaterial({ books = false } = {}) {
       uWallTop: { value: WALL_TOP },
       uFocus: { value: new Vector3(1e6, 0, 0) },
       uFocusAmount: { value: 0 },
+      uGuide: { value: GUIDE_LIGHTS },
+      uTargetBook: { value: new Vector3(1e6, 0, 0) },
+      uTargetColour: { value: new Vector3(0.72, 0.29, 0.2) },
     },
     vertexShader: common + vert,
     fragmentShader: common + frag,
@@ -35,7 +41,7 @@ function fogLinear() {
 
 export function lampMaterial() {
   return new ShaderMaterial({
-    uniforms: { uFog: { value: fogLinear() }, uFogDensity: { value: 0.042 } },
+    uniforms: { uFog: { value: fogLinear() }, uFogDensity: { value: 0.042 }, uGuide: { value: GUIDE_LIGHTS } },
     vertexShader: /* glsl */ `
       varying vec3 vNormal; varying vec3 vView; varying vec3 vWorld;
       void main() {
@@ -46,11 +52,12 @@ export function lampMaterial() {
         gl_Position = projectionMatrix * viewMatrix * w;
       }`,
     fragmentShader: /* glsl */ `
-      uniform vec3 uFog; uniform float uFogDensity;
+      uniform vec3 uFog; uniform float uFogDensity; uniform vec4 uGuide[6];
       varying vec3 vNormal; varying vec3 vView; varying vec3 vWorld;
       void main() {
         float facing = max(dot(normalize(vNormal), vView), 0.0);
         vec3 col = mix(vec3(1.0, 0.72, 0.42), vec3(1.0, 0.96, 0.86), pow(facing, 0.6));
+        for (int i = 0; i < 6; i++) if (distance(vWorld, uGuide[i].xyz) < 0.6) col *= 1.0 + 0.6 * uGuide[i].w;
         float dist = length(vWorld - cameraPosition);
         float fog = 1.0 - exp(-pow(dist * uFogDensity, 1.55));
         col = mix(col, uFog, clamp(fog, 0.0, 1.0) * 0.85);

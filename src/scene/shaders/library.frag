@@ -6,12 +6,15 @@ uniform float uLampZ;
 uniform float uWallTop;
 uniform vec3 uFocus;
 uniform float uFocusAmount;
+// lamps along the guided route, brightened in turn: xyz position, w strength
+uniform vec4 uGuide[6];
 
 varying vec3 vWorld;
 varying vec3 vNormal;
 varying vec3 vColor;
 varying vec3 vDetail;
 varying vec3 vLocal;
+varying float vTarget;
 
 const vec3 LAMP = vec3(1.0, 0.72, 0.42);
 
@@ -44,7 +47,7 @@ void main() {
       // spine: two bands and a soft roll at the edges
       float y = vLocal.y;
       float band = smoothstep(0.1, 0.11, y) * smoothstep(0.15, 0.14, y) + smoothstep(0.84, 0.85, y) * smoothstep(0.89, 0.88, y);
-      base = mix(base, base * 1.35 + 0.04, band * 0.8);
+      base = mix(base, vTarget > 0.5 ? vec3(1.0, 0.77, 0.42) : base * 1.35 + 0.04, band * (vTarget > 0.5 ? 1.0 : 0.8));
       base *= 0.82 + 0.18 * (1.0 - pow(abs(vLocal.x) * 2.0, 4.0));
     } else if (vLocal.y > 0.995) {
       base = mix(base, vec3(0.93, 0.86, 0.72), 0.55); // page edges on top
@@ -60,6 +63,11 @@ void main() {
     float wrap = max(dot(n, normalize(d)) * 0.55 + 0.45, 0.0);
     light += LAMP * wrap * (5.6 / (1.0 + dd * 0.62));
   }
+  for (int i = 0; i < 6; i++) {
+    vec3 d = uGuide[i].xyz - vWorld;
+    float dd = dot(d, d);
+    light += LAMP * uGuide[i].w * max(dot(n, normalize(d)) * 0.5 + 0.5, 0.0) * (3.5 / (1.0 + dd * 0.5));
+  }
   // warm bounce from the floor and the shaft
   light += vec3(0.17, 0.09, 0.05) * (0.5 - 0.5 * n.y);
   // soft ambient occlusion by height: darker into the floor and the ceiling corners
@@ -71,8 +79,10 @@ void main() {
     col = mix(vec3(0.42, 0.30, 0.22), vec3(0.95, 0.80, 0.60), smoothstep(-0.85, 0.85, vDetail.y)) * (0.75 + 0.25 * light.r);
   }
 
+  // the target volume lights up; everything near it only catches a soft halo
   float fd = distance(vWorld, uFocus);
-  col += LAMP * uFocusAmount * exp(-fd * fd * 14.0);
+  float halo = exp(-fd * fd * 6.0) * 0.18;
+  col += LAMP * uFocusAmount * (vTarget > 0.5 ? 0.1 + 0.06 * vLocal.y : halo);
 
   col = col / (1.0 + col * 0.32);
   float dist = length(vWorld - cameraPosition);
