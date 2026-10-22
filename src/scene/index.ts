@@ -2,13 +2,15 @@ import { PerspectiveCamera, Scene, WebGLRenderer } from 'three';
 import { Library } from './library';
 import { FOG } from './materials';
 import { FrameWatch, initialTier, lowerTier, TIERS, type Tier } from './quality';
-import { APOTHEM } from './dimensions';
+import { APOTHEM, FLOOR_HEIGHT, PITCH_X } from './dimensions';
 
 export interface LibraryScene {
   readonly canvas: HTMLCanvasElement;
   readonly tier: () => Tier;
   dispose(): void;
 }
+
+const REBASE_DISTANCE = 400;
 
 const VIEWS = {
   // the landing view: across the railing and down the air shaft, drifting very slowly
@@ -79,12 +81,33 @@ export function mountLibrary(container: HTMLElement): LibraryScene {
     resize();
   });
 
+  // Floating origin: far from the origin floats lose precision, so the camera is pulled back by
+  // whole rooms and the shaders' room offset takes up the difference. Nothing visible changes.
+  const roomOffset = { x: 0, y: 0 };
+  const rebaseListeners: ((dx: number, dy: number) => void)[] = [];
+  const rebase = () => {
+    const kx = Math.abs(camera.position.x) > REBASE_DISTANCE ? Math.round(camera.position.x / PITCH_X) : 0;
+    const ky = Math.abs(camera.position.y) > REBASE_DISTANCE ? Math.floor(camera.position.y / FLOOR_HEIGHT) : 0;
+    if (!kx && !ky) return;
+    camera.position.x -= kx * PITCH_X;
+    camera.position.y -= ky * FLOOR_HEIGHT;
+    roomOffset.x += kx;
+    roomOffset.y += ky;
+    library.setRoomOffset(roomOffset.x, roomOffset.y);
+    for (const l of rebaseListeners) l(kx * PITCH_X, ky * FLOOR_HEIGHT);
+  };
+
+  const hud = import.meta.env.DEV && new URLSearchParams(location.search).has('fps') ? frameReadout(container) : null;
+
   let last = performance.now();
   watch.reset(last);
   renderer.setAnimationLoop((now: number) => {
-    watch.sample(now, now - last);
+    const frameMs = now - last;
+    watch.sample(now, frameMs);
     last = now;
+    hud?.(frameMs, tier.name);
     idleView()(camera, reduced.matches ? 0 : now);
+    rebase();
     library.follow(camera.position.x, camera.position.y);
     renderer.render(scene, camera);
   });
@@ -101,5 +124,25 @@ export function mountLibrary(container: HTMLElement): LibraryScene {
       observer.disconnect();
       renderer.dispose();
     },
+  };
+}
+
+/** Development-only frame time readout, for checking real phones. */
+function frameReadout(container: HTMLElement) {
+  const el = document.createElement('output');
+  el.style.cssText = 'position:fixed;right:8px;top:8px;z-index:9;font:12px/1.3 monospace;color:#fff1dc;background:#2b1710cc;padding:6px 8px;border-radius:4px;white-space:pre';
+  container.parentElement?.appendChild(el);
+  const frames: number[] = [];
+  let shown = 0;
+  return (ms: number, tier: string) => {
+    frames.push(ms);
+    if (frames.length > 120) frames.shift();
+    const now = performance.now();
+    if (now - shown < 500) return;
+    shown = now;
+    const sorted = [...frames].sort((a, b) => a - b);
+    const avg = frames.reduce((a, b) => a + b, 0) / frames.length;
+    const p95 = sorted[Math.floor(sorted.length * 0.95)]!;
+    el.textContent = `${(1000 / avg).toFixed(0)} fps\np95 ${p95.toFixed(1)} ms\ntier ${tier}`;
   };
 }
