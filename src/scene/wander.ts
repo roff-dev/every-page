@@ -56,7 +56,8 @@ export class Wanderer {
     canvas.addEventListener('pointermove', this.move);
     canvas.addEventListener('pointerup', this.up);
     canvas.addEventListener('pointercancel', () => (this.pointer = null));
-    canvas.addEventListener('contextmenu', this.context);
+    // the menu can land on whatever is under the freed cursor, so it's held back across the whole page
+    document.addEventListener('contextmenu', this.context);
     document.addEventListener('pointerlockchange', () => {
       this.aimedAt = null;
       this.events.hover?.(null, 0, 0);
@@ -242,7 +243,7 @@ export class Wanderer {
     this.act(this.ndc(e));
   };
 
-  /** Right click belongs to mouse look while wandering, not the browser's menu. */
+  /** Right click belongs to mouse look while wandering, not the browser's menu (books and the landing keep it). */
   private context = (e: MouseEvent) => {
     if (this.active && mouseLook()) e.preventDefault();
   };
