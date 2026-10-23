@@ -2,7 +2,7 @@
 
 ![Looking down a lamplit shaft of hexagonal library floors, with the title Every Page](public/og.png)
 
-A lamplit, walkable version of Borges's Library of Babel. Every possible page of 3,200 characters is on a shelf somewhere in it, at exactly one place. Type anything, and you fly down the air shaft, follow a trail of light along the gallery to one book, and it opens to the page where your words have always been. You can also ask it for a famous line, which it finds on one of the countless shelves where that line is written, wander the galleries, and share a link to any page or place.
+A lamplit, walkable version of Borges's Library of Babel. Every possible page of 3,200 characters is on a shelf somewhere in it, at exactly one place. Type anything, and you fly down the air shaft, follow a trail of light along the gallery to one book, and it opens to the page where your words have always been. You can also ask it for a famous line, which it finds on one of the countless shelves where that line is written, wander the galleries, and share a link to any page.
 
 **Visit it:** https://every-page.kieronoates.workers.dev
 

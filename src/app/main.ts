@@ -59,7 +59,6 @@ export function boot() {
       form.querySelector('textarea')!.focus();
     },
     random: () => attempt(openRandom),
-    share: () => void sharePlace(),
   });
 
   const sceneReady: Promise<LibraryScene | null> = new Promise((resolve) => {
@@ -262,7 +261,10 @@ export function boot() {
     if (!s) return;
     position ??= await landing(s);
     const p = position;
-    const showPlace = () => wander.setPlace(moveFrom(p, s.room()).hexagon);
+    const showPlace = () => {
+      const { move, hexagon } = moveFrom(p, s.room());
+      wander.setPlace(hexagon, move.east, move.up);
+    };
     s.wander({
       moved: showPlace,
       aiming: (on) => wander.aiming(on),
@@ -290,22 +292,6 @@ export function boot() {
     const { move, index } = locationOf(room, slot);
     const anchor = position!.anchor;
     await read(index, (offset) => formatLink({ anchor, offset, move }), null, null);
-  }
-
-  async function sharePlace() {
-    const s = await sceneReady;
-    if (!s || !position) return;
-    const url = location.origin + location.pathname + formatLink({ anchor: position.anchor, offset: 0n, move: moveFrom(position, s.room()).move });
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: document.title, url });
-      } catch {
-        // dismissed
-      }
-    } else {
-      await navigator.clipboard.writeText(url);
-      wander.linkCopied();
-    }
   }
 
   const card = searchCard(form, (text) => attempt(() => find(text, 0)));

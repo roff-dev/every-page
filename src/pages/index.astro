@@ -44,7 +44,7 @@ import SearchCard from '../components/SearchCard.astro';
       <div class="wander-top">
         <div class="plaque">
           <p><span class="plaque-label">Hexagon</span> <span class="plaque-hex" data-place></span></p>
-          <button class="text-button" type="button" data-share-place><span aria-live="polite">Share this place</span></button>
+          <p class="plaque-where" data-where></p>
         </div>
         <aside class="controls" aria-labelledby="controls-title">
           <p class="controls-title" id="controls-title">Getting around</p>
@@ -385,20 +385,11 @@ import SearchCard from '../components/SearchCard.astro';
     font-family: var(--font-page);
   }
 
-  .text-button {
-    min-height: 2.75rem;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--rust);
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.2em;
-    cursor: pointer;
-  }
-
-  .text-button:hover {
-    color: var(--ink);
+  /* one line per way walked, then where it's counted from */
+  .plaque-where {
+    margin-top: 0.3rem;
+    line-height: 1.35;
+    white-space: pre-line;
   }
 
   .controls {

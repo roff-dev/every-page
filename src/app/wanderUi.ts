@@ -1,9 +1,9 @@
 export interface WanderUi {
   show(): void;
   hide(): void;
-  setPlace(hexagon: bigint): void;
+  /** The room, and how many galleries east and floors up it is from where the visitor arrived */
+  setPlace(hexagon: bigint, east: number, up: number): void;
   hover(title: string | null, x: number, y: number): void;
-  linkCopied(): void;
   /** The view follows the mouse around a crosshair, or the cursor is free */
   aiming(on: boolean): void;
 }
@@ -12,8 +12,11 @@ export interface WanderActions {
   go(way: 'east' | 'west' | 'up' | 'down'): void;
   search(): void;
   random(): void;
-  share(): void;
 }
+
+/** "3 galleries east", "1 floor down", or nothing when none were walked */
+const ways = (n: number, one: string, many: string, plus: string, minus: string) =>
+  n ? `${Math.abs(n).toLocaleString('en-GB')} ${Math.abs(n) === 1 ? one : many} ${n > 0 ? plus : minus}` : null;
 
 /** Each control as keys (shown as key caps) or words, and what it does */
 type Control = [keys: string[] | string, does: string];
@@ -40,6 +43,7 @@ const CONTROLS: Record<'touch' | 'aiming' | 'cursor', Control[]> = {
 
 export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
   const place = root.querySelector<HTMLElement>('[data-place]')!;
+  const where = root.querySelector<HTMLElement>('[data-where]')!;
   const controls = root.querySelector<HTMLElement>('[data-controls]')!;
   const label = root.querySelector<HTMLElement>('[data-spine]')!;
   const crosshair = root.querySelector<HTMLElement>('[data-crosshair]')!;
@@ -48,9 +52,6 @@ export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
   );
   root.querySelector('[data-search]')!.addEventListener('click', actions.search);
   root.querySelector('[data-random]')!.addEventListener('click', actions.random);
-  root.querySelector('[data-share-place]')!.addEventListener('click', actions.share);
-  const shareLabel = root.querySelector<HTMLElement>('[data-share-place] span')!;
-  let shareReset = 0;
 
   const showControls = (mode: keyof typeof CONTROLS) => {
     controls.replaceChildren(
@@ -76,10 +77,12 @@ export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
     hide() {
       label.hidden = true;
     },
-    setPlace(hexagon) {
+    setPlace(hexagon, east, up) {
       const h = hexagon.toString(36);
       place.textContent = h.length > 18 ? `${h.slice(0, 8)}…${h.slice(-6)}` : h;
       place.title = `Hexagon ${h.slice(0, 40)}…`;
+      const walked = [ways(east, 'gallery', 'galleries', 'east', 'west'), ways(up, 'floor', 'floors', 'up', 'down')].filter(Boolean);
+      where.textContent = walked.length ? `${walked.join('\n')}\nfrom where you arrived` : 'Where you arrived';
     },
     hover(title, x, y) {
       label.hidden = title === null;
@@ -90,11 +93,6 @@ export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
     aiming(on) {
       crosshair.hidden = !on;
       showControls(on ? 'aiming' : 'cursor');
-    },
-    linkCopied() {
-      shareLabel.textContent = 'Link copied';
-      clearTimeout(shareReset);
-      shareReset = window.setTimeout(() => (shareLabel.textContent = 'Share this place'), 2200);
     },
   };
 }
