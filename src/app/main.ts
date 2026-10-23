@@ -54,6 +54,7 @@ export function boot() {
   const wander = wanderUi(document.getElementById('wander')!, {
     go: (way) => scene?.go(way),
     search: () => {
+      scene?.release();
       document.body.dataset.state = '';
       form.querySelector('textarea')!.focus();
     },
@@ -264,6 +265,7 @@ export function boot() {
     const showPlace = () => wander.setPlace(moveFrom(p, s.room()).hexagon);
     s.wander({
       moved: showPlace,
+      aiming: (on) => wander.aiming(on),
       book: (pick) => void browse(s, pick.instance),
       hover: (pick, x, y) => {
         if (!pick) return wander.hover(null, x, y);

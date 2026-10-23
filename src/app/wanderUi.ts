@@ -4,6 +4,8 @@ export interface WanderUi {
   setPlace(hexagon: bigint): void;
   hover(title: string | null, x: number, y: number): void;
   linkCopied(): void;
+  /** The view follows the mouse around a crosshair, or the cursor is free */
+  aiming(on: boolean): void;
 }
 
 export interface WanderActions {
@@ -13,12 +15,14 @@ export interface WanderActions {
   share(): void;
 }
 
-const HINT_KEY = 'every-page:wander-hint';
+const HINT_KEY = 'every-page:wander-hint-2';
 
 export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
   const place = root.querySelector<HTMLElement>('[data-place]')!;
   const hint = root.querySelector<HTMLElement>('[data-hint]')!;
   const label = root.querySelector<HTMLElement>('[data-spine]')!;
+  const crosshair = root.querySelector<HTMLElement>('[data-crosshair]')!;
+  const aimNote = root.querySelector<HTMLElement>('[data-aim-note]')!;
   root.querySelectorAll<HTMLButtonElement>('[data-way]').forEach((b) =>
     b.addEventListener('click', () => actions.go(b.dataset.way as 'east' | 'west' | 'up' | 'down')),
   );
@@ -31,7 +35,7 @@ export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
   const coarse = matchMedia('(pointer: coarse)').matches;
   hint.textContent = coarse
     ? 'Drag to look around. Tap the floor to walk there, or a book to read it.'
-    : 'Drag to look around. Walk with W A S D or the arrow keys. Click a book to read it.';
+    : 'Move the mouse to look around. Click to walk there or open a book, or walk with W A S D. Right click frees the cursor.';
 
   return {
     show() {
@@ -64,6 +68,10 @@ export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
       if (title === null) return;
       label.textContent = title;
       label.style.translate = `${Math.round(x + 14)}px ${Math.round(y - 30)}px`;
+    },
+    aiming(on) {
+      crosshair.hidden = !on;
+      aimNote.hidden = on;
     },
     linkCopied() {
       shareLabel.textContent = 'Link copied';

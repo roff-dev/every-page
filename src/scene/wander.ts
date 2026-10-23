@@ -14,16 +14,25 @@ export interface WanderEvents {
   hover?(pick: BookPick | null, x: number, y: number): void;
   /** The visitor has stepped into another room or floor */
   moved?(): void;
+  /** Mouse look (the pointer locked to a crosshair) switched on or off */
+  aiming?(on: boolean): void;
 }
 
 const WALK_SPEED = 1.6;
 const LOOK_PER_PIXEL = { mouse: 0.0032, touch: 0.0052 };
+const AIM_PER_PIXEL = 0.0022;
+const CENTRE = new Vector2(0, 0);
+/** A mouse that can hover: the view follows it, with right click to free the cursor */
+const mouseLook = () => matchMedia('(hover: hover) and (pointer: fine)').matches && 'requestPointerLock' in HTMLElement.prototype;
 const PITCH_LIMIT = MathUtils.degToRad(60);
 const TAP_PIXELS = 8;
 const TAP_MS = 350;
 const STAIR: typeof WALK = { vMax: 3.0, aLat: 4.5, aLong: 2.2, vEnd: 0.05 };
 
-/** First-person wandering: drag to look, tap or click to go somewhere, keys to walk. */
+/**
+ * First-person wandering: drag to look, tap or click to go somewhere, keys to walk.
+ * With a mouse the view follows it instead, around a crosshair, until a right click frees the cursor.
+ */
 export class Wanderer {
   active = false;
   private yaw = 0;
@@ -35,6 +44,7 @@ export class Wanderer {
   private ray = new Raycaster();
   private lastRoom = '';
   private hoverAt = 0;
+  private aimedAt: number | null = null;
 
   constructor(
     private readonly camera: PerspectiveCamera,
@@ -46,6 +56,13 @@ export class Wanderer {
     canvas.addEventListener('pointermove', this.move);
     canvas.addEventListener('pointerup', this.up);
     canvas.addEventListener('pointercancel', () => (this.pointer = null));
+    canvas.addEventListener('contextmenu', this.context);
+    document.addEventListener('pointerlockchange', () => {
+      this.aimedAt = null;
+      this.events.hover?.(null, 0, 0);
+      this.events.aiming?.(this.aiming);
+    });
+    document.addEventListener('pointerlockerror', () => this.events.aiming?.(false));
     addEventListener('keydown', this.keyDown);
     addEventListener('keyup', (e: KeyboardEvent) => this.keys.delete(e.key.toLowerCase()));
     addEventListener('blur', () => this.keys.clear());
@@ -67,12 +84,31 @@ export class Wanderer {
     }
     this.active = true;
     this.lastRoom = this.roomKey();
+    if (mouseLook()) {
+      this.events.aiming?.(this.aiming);
+      this.lock();
+    }
   }
 
   stop() {
     this.active = false;
     this.glide = null;
     this.keys.clear();
+    if (this.aiming) document.exitPointerLock();
+  }
+
+  get aiming() {
+    return document.pointerLockElement === this.canvas;
+  }
+
+  /** Browsers only grant the lock soon after a click or key press; a refusal leaves the cursor free. */
+  private lock() {
+    if (!this.active || this.aiming) return;
+    try {
+      void Promise.resolve(this.canvas.requestPointerLock()).catch(() => this.events.aiming?.(false));
+    } catch {
+      this.events.aiming?.(false);
+    }
   }
 
   east(dir: number) {
@@ -121,6 +157,19 @@ export class Wanderer {
       this.lastRoom = room;
       this.events.moved?.();
     }
+    if (this.aiming) this.hoverCentre();
+  }
+
+  /** Name the book under the crosshair, whether the view or the visitor moved. */
+  private hoverCentre() {
+    const now = performance.now();
+    if (!this.events.hover || now - this.hoverAt < 120) return;
+    this.hoverAt = now;
+    const pick = this.pickBook(CENTRE);
+    if ((pick?.instance ?? null) === this.aimedAt) return;
+    this.aimedAt = pick?.instance ?? null;
+    const r = this.canvas.getBoundingClientRect();
+    this.events.hover(pick, r.left + r.width / 2, r.top + r.height / 2);
   }
 
   private roomKey() {
@@ -136,6 +185,17 @@ export class Wanderer {
 
   private down = (e: PointerEvent) => {
     if (!this.active) return;
+    // right click swaps between mouse look and a free cursor (no contextmenu event arrives while locked)
+    if (e.pointerType === 'mouse' && e.button === 2 && mouseLook()) {
+      if (this.aiming) document.exitPointerLock();
+      else this.lock();
+      return;
+    }
+    if (this.aiming) {
+      if (e.button === 0) this.act(CENTRE);
+      return;
+    }
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     this.canvas.setPointerCapture(e.pointerId);
     this.pointer = { id: e.pointerId, x: e.clientX, y: e.clientY, at: performance.now(), dragged: false, type: e.pointerType };
     this.spin.set(0, 0);
@@ -143,6 +203,15 @@ export class Wanderer {
 
   private move = (e: PointerEvent) => {
     if (!this.active) return;
+    if (this.aiming) {
+      // the view follows the mouse; no inertia, so it stops when the hand does
+      if (!this.glide) {
+        this.yaw += e.movementX * AIM_PER_PIXEL;
+        this.pitch = MathUtils.clamp(this.pitch - e.movementY * AIM_PER_PIXEL, -PITCH_LIMIT, PITCH_LIMIT);
+        this.spin.set(0, 0);
+      }
+      return;
+    }
     const p = this.pointer;
     if (p && p.id === e.pointerId) {
       if (!p.dragged && Math.hypot(e.clientX - p.x, e.clientY - p.y) > TAP_PIXELS) p.dragged = true;
@@ -161,7 +230,7 @@ export class Wanderer {
       const now = performance.now();
       if (now - this.hoverAt < 90) return;
       this.hoverAt = now;
-      this.events.hover(this.pickBook(e), e.clientX, e.clientY);
+      this.events.hover(this.pickBook(this.ndc(e)), e.clientX, e.clientY);
     }
   };
 
@@ -170,20 +239,29 @@ export class Wanderer {
     this.pointer = null;
     if (!this.active || !p || p.id !== e.pointerId) return;
     if (p.dragged || performance.now() - p.at > TAP_MS) return;
-    const book = this.pickBook(e);
+    this.act(this.ndc(e));
+  };
+
+  /** Right click belongs to mouse look while wandering, not the browser's menu. */
+  private context = (e: MouseEvent) => {
+    if (this.active && mouseLook()) e.preventDefault();
+  };
+
+  /** Open the book at a point on screen, or walk to the floor there, round the shaft if needed. */
+  private act(at: Vector2) {
+    const book = this.pickBook(at);
     if (book) {
       this.events.book?.(book);
       return;
     }
-    // tapping the floor walks there, round the shaft if needed
     const floorY = Math.floor((this.camera.position.y + 0.15) / FLOOR_HEIGHT) * FLOOR_HEIGHT;
-    this.aim(e);
+    this.ray.setFromCamera(at, this.camera);
     const hit = this.ray.ray.intersectPlane(new Plane(new Vector3(0, 1, 0), -floorY), new Vector3());
     if (hit && hit.distanceTo(this.camera.position) < 14 && walkable(hit.x, hit.z)) {
       hit.y = floorY + EYE_HEIGHT;
       this.glideAlong(aroundShaft(this.camera.position, hit), WALK);
     }
-  };
+  }
 
   private keyDown = (e: KeyboardEvent) => {
     if (!this.active || (e.target as HTMLElement).closest?.('input, textarea, [role="dialog"]')) return;
@@ -195,13 +273,14 @@ export class Wanderer {
     }
   };
 
-  private aim(e: PointerEvent) {
+  /** A pointer's position in normalised device coordinates */
+  private ndc(e: PointerEvent) {
     const r = this.canvas.getBoundingClientRect();
-    this.ray.setFromCamera(new Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), this.camera);
+    return new Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   }
 
-  private pickBook(e: PointerEvent): BookPick | null {
-    this.aim(e);
+  private pickBook(at: Vector2): BookPick | null {
+    this.ray.setFromCamera(at, this.camera);
     this.ray.far = 6;
     const hit = this.ray.intersectObject(this.library.books, false)[0];
     this.ray.far = Infinity;

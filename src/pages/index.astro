@@ -58,6 +58,8 @@ import SearchCard from '../components/SearchCard.astro';
         <button class="round" type="button" aria-pressed="false" data-sound>Sound <span class="round-state" aria-hidden="true" data-sound-state>off</span></button>
       </div>
       <p class="spine-label" data-spine hidden></p>
+      <div class="crosshair" data-crosshair aria-hidden="true" hidden></div>
+      <p class="aim-note" data-aim-note hidden>Right click to look around with the mouse</p>
     </section>
   </main>
 </Base>
@@ -414,6 +416,49 @@ import SearchCard from '../components/SearchCard.astro';
 
   .round[aria-pressed='true'] .round-state {
     color: var(--lamplight);
+  }
+
+  .crosshair {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    width: 1.1rem;
+    height: 1.1rem;
+    translate: -50% -50%;
+    border: 1.5px solid rgb(255 241 220 / 0.85);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgb(43 23 16 / 0.45), inset 0 0 0 1px rgb(43 23 16 / 0.45);
+    pointer-events: none;
+  }
+
+  .crosshair::after {
+    content: '';
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 3px;
+    height: 3px;
+    translate: -50% -50%;
+    border-radius: 50%;
+    background: var(--lamplight);
+  }
+
+  .crosshair[hidden],
+  .aim-note[hidden] {
+    display: none;
+  }
+
+  .aim-note {
+    position: absolute;
+    left: 50%;
+    top: max(var(--space-2), env(safe-area-inset-top));
+    translate: -50% 0;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    background: var(--scrim);
+    font-size: var(--step--1);
+    color: var(--muted);
+    white-space: nowrap;
+    pointer-events: none;
   }
 
   .spine-label {

@@ -102,6 +102,7 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
     book: (p) => wandererEvents.book?.(p),
     hover: (p, x, y) => wandererEvents.hover?.(p, x, y),
     moved: () => wandererEvents.moved?.(),
+    aiming: (on) => wandererEvents.aiming?.(on),
   });
   // dragging or tapping during the guided walk takes over; looking around works as when wandering
   const canvas = renderer.domElement;
@@ -200,12 +201,18 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
     onStep: null,
     canvas: renderer.domElement,
     tier: () => tier,
-    journey: (target, events, short) => director.start(target, events, reduced.matches, short),
+    journey: (target, events, short) => {
+      wanderer.stop();
+      return director.start(target, events, reduced.matches, short);
+    },
     skip: () => director.skip(),
     resume: () => director.resume(),
     reveal: () => director.reveal(),
     shelve: () => director.shelve(),
-    release: () => director.clear(),
+    release: () => {
+      wanderer.stop();
+      director.clear();
+    },
     wander(events) {
       Object.assign(wandererEvents, events);
       director.clear();
@@ -215,7 +222,10 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
       if (way === 'east' || way === 'west') wanderer.east(way === 'east' ? 1 : -1);
       else wanderer.floor(way === 'up' ? 1 : -1);
     },
-    browse: (instance, events) => director.browse(instance, events),
+    browse: (instance, events) => {
+      wanderer.stop();
+      return director.browse(instance, events);
+    },
     // from the camera itself, so it's right even before the rooms have re-centred this frame
     room: () => ({
       x: Math.round(camera.position.x / PITCH_X) + library.roomOffset.x,
