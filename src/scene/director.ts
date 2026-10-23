@@ -1,5 +1,5 @@
 import { MathUtils, Matrix4, PerspectiveCamera, Scene, Vector2, Vector3 } from 'three';
-import { ComfortLook, buildRoute, planPath, planPathLasting, standPoint, TRAVEL, WALK, type Plan, type Route } from './journey';
+import { ComfortLook, buildRoute, planPath, planPathLasting, standPoint, GUIDE, TRAVEL, type Plan, type Route } from './journey';
 import { Halo, Trail, clearLamps, lightLamps, routeLamps } from './guide';
 import { ReadingBook } from './book';
 import { spineColour } from './colour';
@@ -36,7 +36,7 @@ export interface JourneyEvents {
 
 const slots = bookSlots();
 const TARGET_HEIGHT = 0.47;
-const TRAVEL_SECONDS = 8;
+const TRAVEL_SECONDS = 10;
 /** A shared link skips the flight: the last stretch of the walk, fading in from the veil. */
 const SHORT_WALK_SECONDS = 2.2;
 const FADE_IN_SECONDS = 0.6;
@@ -148,7 +148,7 @@ export class Director {
         this.placeAtShelf();
         this.step = { kind: 'veil', t: 0, to: 'in' };
       } else {
-        const plan = planPath(this.route.walk, WALK);
+        const plan = planPath(this.route.walk, GUIDE);
         const t = Math.max(0, plan.duration - SHORT_WALK_SECONDS);
         this.camera.position.copy(plan.curve.getPointAt(plan.at(t).u));
         this.camera.lookAt(this.book);
@@ -321,7 +321,7 @@ export class Director {
       // a breath at the railing while the first lamps come up
       this.lightGuide(dt);
       if (step.t > 0.9) {
-        this.step = { kind: 'guide', plan: planPath(this.route!.walk, WALK), t: 0 };
+        this.step = { kind: 'guide', plan: planPath(this.route!.walk, GUIDE), t: 0 };
         this.events.phase?.('guide');
       }
     } else if (step.kind === 'guide') {

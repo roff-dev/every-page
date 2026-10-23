@@ -122,6 +122,8 @@ export class ComfortLook {
 
 export const TRAVEL: Limits = { vMax: 60, aLat: 16, aLong: 14, vEnd: 0.6 };
 export const WALK: Limits = { vMax: 2.4, aLat: 1.8, aLong: 1.4, vEnd: 0.05 };
+/** The guided walk after a flight: brisker than wandering, so it doesn't crawl after the speed of the flight. */
+export const GUIDE: Limits = { vMax: 4.2, aLat: 3.6, aLong: 3.0, vEnd: 0.05 };
 const EYE = 1.6;
 const RING = 3.9; // walking radius around the shaft
 

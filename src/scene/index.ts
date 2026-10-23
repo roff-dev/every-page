@@ -38,8 +38,9 @@ export interface LibraryScene {
 export type { JourneyTarget, JourneyEvents, WanderEvents };
 
 const REBASE_DISTANCE = 400;
-/** Metres between footfalls at walking pace */
+/** Metres between footfalls at walking pace; strides lengthen as the pace quickens */
 const STRIDE = 0.78;
+const WALKING_PACE = 1.6;
 
 const VIEWS = {
   // the landing view: across the railing and down the air shaft, drifting very slowly
@@ -163,7 +164,7 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
   watch.reset(last);
   const lastPosition = camera.position.clone();
   let stride = 0;
-  const footfalls = () => {
+  const footfalls = (dt: number) => {
     const p = camera.position;
     const moved = Math.hypot(p.x - lastPosition.x, p.z - lastPosition.z) + Math.abs(p.y - lastPosition.y) * 0.6;
     lastPosition.copy(p);
@@ -171,7 +172,8 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
     const onFoot = (director.guiding && !director.holding) || wanderer.active;
     if (!onFoot || moved > 0.5) return void (stride = 0);
     stride += moved;
-    if (stride < STRIDE) return;
+    const pace = dt > 0 ? moved / dt : 0;
+    if (stride < STRIDE * Math.max(1, pace / WALKING_PACE) ** 0.6) return;
     stride = 0;
     api.onStep?.();
   };
@@ -184,7 +186,7 @@ export async function mountLibrary(container: HTMLElement): Promise<LibraryScene
     if (director.active || director.standing) director.update(dt, now / 1000);
     else if (wanderer.active) wanderer.update(dt);
     else idleView()(camera, reduced.matches ? 0 : now);
-    footfalls();
+    footfalls(dt);
     if (!director.active) rebase();
     library.follow(camera.position.x, camera.position.y);
     renderer.render(scene, camera);
