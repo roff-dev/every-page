@@ -36,7 +36,7 @@
   min-height: 2.75rem;
   padding: 0 1rem;
   border: 1px solid var(--brass);
-  border-radius: 999px;
+  border-radius: 0.45rem;
   background: none;
   color: var(--cream);
   font-family: var(--font-display);
@@ -169,7 +169,7 @@
   width: 2.75rem;
   height: 2.75rem;
   border: 1px solid var(--brass);
-  border-radius: 50%;
+  border-radius: 0.45rem;
   background: rgb(43 23 16 / 0.6);
   color: var(--cream);
   font-size: 1.5rem;
@@ -238,7 +238,7 @@
   height: 2.75rem;
   padding: 0 0.5em;
   border: 1px solid var(--brass);
-  border-radius: 0.3rem;
+  border-radius: 0.45rem;
   background: rgb(43 23 16 / 0.6);
   color: var(--cream);
 }
