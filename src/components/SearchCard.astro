@@ -1,56 +1,64 @@
 ---
-/** The catalogue card: the search field with its live "will read as" feedback. Extra actions go in the slot. */
+/**
+ * An open book to write in: the search field with its live "will read as" feedback.
+ * Extra actions go in the default slot; `spread` opens it across two pages on wide screens,
+ * with anything in the "verso" slot under the question on the left-hand page.
+ */
+interface Props {
+  spread?: boolean;
+}
+
+const { spread = false } = Astro.props;
 ---
-<form class="card" id="search" role="search" action="/" method="get">
-  <label class="card-label" for="query">What should the library find?</label>
-  <textarea
-    id="query"
-    name="q"
-    rows="2"
-    maxlength="6000"
-    autocomplete="off"
-    autocapitalize="none"
-    spellcheck="false"
-    placeholder="A sentence, a name, a line you can't forget…"
-    aria-describedby="reads-as search-note"
-  ></textarea>
-  <p class="reads-as" id="reads-as" data-reads-as hidden>The library will read this as <q></q></p>
-  <p class="note" id="search-note" data-note role="status" hidden></p>
-  <p class="trouble" data-trouble role="alert" hidden>
-    The catalogue didn't answer. <button class="random" type="button" data-retry>Try again</button>
-  </p>
-  <div class="card-actions">
-    <button class="find" type="submit">Find it</button>
-    <slot />
-    <span class="counter" data-counter hidden></span>
+<form class:list={['card', { spread }]} id="search" role="search" action="/" method="get">
+  <div class="verso">
+    <label class="card-label" for="query">What should the library find?</label>
+    <slot name="verso" />
+  </div>
+  <div class="recto">
+    <textarea
+      id="query"
+      name="q"
+      rows="2"
+      maxlength="6000"
+      autocomplete="off"
+      autocapitalize="none"
+      spellcheck="false"
+      placeholder="A sentence, a name, a line you can't forget…"
+      aria-describedby="reads-as search-note"
+    ></textarea>
+    <p class="reads-as" id="reads-as" data-reads-as hidden>The library will read this as <q></q></p>
+    <p class="note" id="search-note" data-note role="status" hidden></p>
+    <p class="trouble" data-trouble role="alert" hidden>
+      The catalogue didn't answer. <button class="random" type="button" data-retry>Try again</button>
+    </p>
+    <div class="card-actions">
+      <button class="find" type="submit">Find it</button>
+      <slot />
+      <span class="counter" data-counter hidden></span>
+    </div>
   </div>
 </form>
 
 <style>
+  /* one page of a book bound on the left: the rust cover at the spine and edges, shadow into the binding */
   .card {
-    width: min(100%, 30rem);
-    padding: var(--space-3) var(--space-3) var(--space-2);
-    background: var(--parchment);
-    color: var(--ink);
-    border-radius: var(--radius-card);
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.5) inset,
-      0 24px 60px -20px rgb(0 0 0 / 0.55);
     position: relative;
-  }
-
-  /* the punched hole of a catalogue card */
-  .card::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 0.55rem;
-    width: 0.7rem;
-    height: 0.7rem;
-    translate: -50% 0;
-    border-radius: 50%;
-    background: var(--night);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 0.35);
+    width: min(100%, 30rem);
+    padding: var(--space-3) var(--space-3) var(--space-2) calc(var(--space-3) + 0.3rem);
+    color: var(--ink);
+    background:
+      linear-gradient(to right, rgb(58 38 24 / 0.24), rgb(58 38 24 / 0.07) 1.3rem, transparent 2.6rem),
+      radial-gradient(120% 90% at 75% 10%, #fbf4e3, var(--parchment) 65%);
+    border-left: 0.4rem solid var(--rust);
+    border-radius: 0.3rem 0.45rem 0.45rem 0.3rem;
+    box-shadow:
+      1px 1px 0 #eadab9,
+      2px 2px 0 #f6eacf,
+      3px 3px 0 #e3d0ab,
+      4px 4px 0 #f3e5c8,
+      5px 6px 0 var(--rust),
+      0 28px 60px -18px rgb(0 0 0 / 0.6);
   }
 
   .card-label {
@@ -61,6 +69,88 @@
     line-height: 1.2;
     padding-bottom: var(--space-1);
     border-bottom: 1px solid var(--rust);
+  }
+
+  /* wide screens: the book lies open across two pages */
+  @media (min-width: 64rem) {
+    .spread {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      width: min(100%, 62rem);
+      padding: 0;
+      background: none;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      perspective: 2000px;
+    }
+
+    /* the cover, standing a little proud of the pages */
+    .spread::before {
+      content: '';
+      position: absolute;
+      inset: -0.6rem -0.8rem -1rem;
+      z-index: -1;
+      border-radius: 0.65rem;
+      background: linear-gradient(170deg, #9a4430, var(--rust) 40%, #6f2d1c);
+      box-shadow: 0 40px 80px -24px rgb(0 0 0 / 0.7);
+    }
+
+    .spread .verso,
+    .spread .recto {
+      display: flex;
+      flex-direction: column;
+      min-height: 23rem;
+      padding: var(--space-4) var(--space-4) var(--space-3);
+    }
+
+    .spread .verso {
+      background:
+        linear-gradient(to left, rgb(58 38 24 / 0.3), rgb(58 38 24 / 0.08) 1.6rem, transparent 3.6rem),
+        radial-gradient(130% 90% at 15% 8%, #fbf4e3, var(--parchment) 65%);
+      border-radius: 0.45rem 0.1rem 0.1rem 0.45rem;
+      box-shadow: -1px 1px 0 #eadab9, -2px 2px 0 #f6eacf, -3px 3px 0 #e3d0ab, -4px 4px 0 #f3e5c8;
+      transform-origin: right center;
+      animation: open-verso 1100ms var(--ease-settle) 200ms both;
+    }
+
+    .spread .recto {
+      background:
+        linear-gradient(to right, rgb(58 38 24 / 0.3), rgb(58 38 24 / 0.08) 1.6rem, transparent 3.6rem),
+        radial-gradient(130% 90% at 85% 8%, #fbf4e3, var(--parchment) 65%);
+      border-radius: 0.1rem 0.45rem 0.45rem 0.1rem;
+      box-shadow: 1px 1px 0 #eadab9, 2px 2px 0 #f6eacf, 3px 3px 0 #e3d0ab, 4px 4px 0 #f3e5c8;
+      transform-origin: left center;
+      animation: open-recto 1100ms var(--ease-settle) 200ms both;
+    }
+
+    .spread .card-label {
+      font-size: var(--step-2);
+      line-height: 1.1;
+      padding-bottom: var(--space-2);
+    }
+
+    .spread textarea {
+      margin-top: 0;
+      min-height: 8em;
+    }
+
+    .spread .card-actions {
+      margin-top: auto;
+      padding-bottom: 0;
+    }
+  }
+
+  @keyframes open-verso {
+    from {
+      transform: rotateY(16deg);
+    }
+  }
+
+  @keyframes open-recto {
+    from {
+      transform: rotateY(-16deg);
+    }
   }
 
   textarea {

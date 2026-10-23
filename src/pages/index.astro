@@ -15,10 +15,10 @@ import SearchCard from '../components/SearchCard.astro';
 
     <header class="masthead">
       <h1>Every Page</h1>
-      <p class="lede">Every page that could ever be written is already on these shelves. Yours too.</p>
     </header>
 
-    <SearchCard>
+    <SearchCard spread>
+      <p class="lede" slot="verso">Every page that could ever be written is already on these shelves. Yours too.</p>
       <button class="random" type="button" id="random">Find a famous line</button>
       <button class="random" type="button" id="wander-start">Wander the galleries</button>
     </SearchCard>
@@ -73,7 +73,8 @@ import SearchCard from '../components/SearchCard.astro';
   .poster {
     position: relative;
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto 1fr;
+    justify-items: center;
     min-height: calc(100dvh - 4.5rem);
     padding: max(var(--space-3), env(safe-area-inset-top)) var(--gutter) var(--space-2);
     isolation: isolate;
@@ -99,10 +100,12 @@ import SearchCard from '../components/SearchCard.astro';
     pointer-events: none;
   }
 
+  /* wide screens: settle the room around the open book in the middle */
   @media (min-width: 64rem) {
     .scene::after {
       background:
-        radial-gradient(70% 75% at 0% 0%, rgb(43 23 16 / 0.85), rgb(43 23 16 / 0.4) 55%, transparent 80%),
+        radial-gradient(60% 55% at 50% 56%, rgb(43 23 16 / 0.5), rgb(43 23 16 / 0.2) 70%, transparent),
+        linear-gradient(to bottom, rgb(43 23 16 / 0.7), transparent 30%),
         linear-gradient(to top, rgb(43 23 16 / 0.5), transparent 25%);
     }
   }
@@ -125,12 +128,12 @@ import SearchCard from '../components/SearchCard.astro';
     opacity: 1;
   }
 
-  .masthead h1 {
-    max-width: 6ch;
+  .masthead {
+    justify-self: stretch;
   }
 
   h1 {
-    font-size: var(--step-display);
+    font-size: clamp(2.6rem, 1.9rem + 3vw, 4.8rem);
     font-weight: 380;
     font-variation-settings: 'SOFT' 100;
     letter-spacing: -0.025em;
@@ -139,16 +142,33 @@ import SearchCard from '../components/SearchCard.astro';
     text-shadow: 0 0 0.6em rgb(255 196 107 / 0.18);
   }
 
+  /* under the question on the book's first page */
   .lede {
-    margin-top: var(--space-3);
-    max-width: 24ch;
-    font-size: var(--step-1);
-    line-height: 1.35;
-    color: var(--muted);
+    margin-top: var(--space-1);
+    max-width: 30ch;
+    font-style: italic;
+    font-size: var(--step--1);
+    line-height: 1.45;
+    color: var(--faded);
   }
 
   .poster > :global(.card) {
-    grid-row: 3;
+    grid-row: 2;
+    align-self: center;
+    margin-block: var(--space-4);
+  }
+
+  @media (min-width: 64rem) {
+    .masthead {
+      text-align: center;
+    }
+
+    .lede {
+      margin-top: auto;
+      padding-top: var(--space-3);
+      font-size: var(--step-0);
+      max-width: 24ch;
+    }
   }
 
   .masthead,
@@ -581,14 +601,21 @@ import SearchCard from '../components/SearchCard.astro';
     background: var(--walnut);
   }
 
-  @media (min-width: 64rem) {
-    .poster {
-      padding-top: var(--space-5);
-      padding-inline: max(var(--space-5), var(--gutter));
+  /* short screens (a phone on its side): keep the book in view */
+  @media (max-height: 30rem) {
+    h1 {
+      font-size: 2.2rem;
     }
 
     .poster > :global(.card) {
-      margin-bottom: var(--space-3);
+      margin-block: var(--space-2);
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .poster {
+      padding-top: var(--space-4);
+      padding-inline: max(var(--space-5), var(--gutter));
     }
   }
 </style>
