@@ -29,7 +29,7 @@ npm run preview   # serve the build
 
 ## Tech
 
-Astro (static output), TypeScript, three.js with hand-written GLSL, Web Workers, BigInt, Web Audio, and Cloudflare Pages.
+Astro (static output), TypeScript, three.js with hand-written GLSL, Web Workers, BigInt, Web Audio, and a Cloudflare Worker serving static assets.
 
 ## Credits and licences
 
