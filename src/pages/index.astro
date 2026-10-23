@@ -41,25 +41,31 @@ import SearchCard from '../components/SearchCard.astro';
     </section>
 
     <section class="wander" id="wander" aria-label="Wandering the library">
-      <div class="plaque">
-        <p><span class="plaque-label">Hexagon</span> <span class="plaque-hex" data-place></span></p>
-        <button class="text-button" type="button" data-share-place><span aria-live="polite">Share this place</span></button>
+      <div class="wander-top">
+        <div class="plaque">
+          <p><span class="plaque-label">Hexagon</span> <span class="plaque-hex" data-place></span></p>
+          <button class="text-button" type="button" data-share-place><span aria-live="polite">Share this place</span></button>
+        </div>
+        <aside class="controls" aria-labelledby="controls-title">
+          <p class="controls-title" id="controls-title">Getting around</p>
+          <dl data-controls></dl>
+        </aside>
       </div>
-      <p class="hint" data-hint hidden></p>
-      <nav class="ways" aria-label="Ways on">
-        <button type="button" data-way="west"><span aria-hidden="true">←</span> West gallery</button>
-        <button type="button" data-way="east">East gallery <span aria-hidden="true">→</span></button>
-        <button type="button" data-way="up"><span aria-hidden="true">↑</span> Stairs up</button>
-        <button type="button" data-way="down"><span aria-hidden="true">↓</span> Stairs down</button>
-      </nav>
-      <div class="wander-actions">
-        <button class="round" type="button" data-search>Search</button>
-        <button class="round" type="button" data-random>Famous line</button>
-        <button class="round" type="button" aria-pressed="false" data-sound>Sound <span class="round-state" aria-hidden="true" data-sound-state>off</span></button>
+      <div class="wander-bottom">
+        <nav class="ways" aria-label="Ways on">
+          <button type="button" data-way="west"><span aria-hidden="true">←</span> West gallery</button>
+          <button type="button" data-way="east">East gallery <span aria-hidden="true">→</span></button>
+          <button type="button" data-way="up"><span aria-hidden="true">↑</span> Stairs up</button>
+          <button type="button" data-way="down"><span aria-hidden="true">↓</span> Stairs down</button>
+        </nav>
+        <div class="wander-actions">
+          <button class="round" type="button" data-search>Search</button>
+          <button class="round" type="button" data-random><span class="quote-mark" aria-hidden="true">“</span>Famous line</button>
+          <button class="round" type="button" aria-pressed="false" data-sound>Sound <span class="round-state" aria-hidden="true" data-sound-state>off</span></button>
+        </div>
       </div>
       <p class="spine-label" data-spine hidden></p>
       <div class="crosshair" data-crosshair aria-hidden="true" hidden></div>
-      <p class="aim-note" data-aim-note hidden>Right click to look around with the mouse</p>
     </section>
   </main>
 </Base>
@@ -340,19 +346,39 @@ import SearchCard from '../components/SearchCard.astro';
     pointer-events: auto;
   }
 
-  .plaque {
+  /* the plaque and the controls card are small pages, bound in the same rust as the landing's book */
+  .wander-top {
     position: absolute;
     top: max(var(--space-2), env(safe-area-inset-top));
     left: var(--gutter);
-    padding: 0.55rem 0.9rem;
-    border: 1px solid rgb(185 138 94 / 0.6);
-    border-radius: var(--radius-card);
-    background: var(--scrim);
+    right: var(--gutter);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-1);
+    pointer-events: none;
+  }
+
+  .plaque,
+  .controls {
+    padding: 0.55rem 0.9rem 0.6rem 1rem;
+    color: var(--ink);
+    background:
+      linear-gradient(to right, rgb(58 38 24 / 0.18), transparent 1.2rem),
+      var(--parchment);
+    border-left: 0.3rem solid var(--rust);
+    border-radius: 0.3rem 0.45rem 0.45rem 0.3rem;
+    box-shadow:
+      1px 1px 0 #eadab9,
+      2px 2px 0 #e3d0ab,
+      0 14px 30px -14px rgb(0 0 0 / 0.65);
     font-size: var(--step--1);
+    pointer-events: auto;
   }
 
   .plaque-label {
-    color: var(--muted);
+    color: var(--faded);
   }
 
   .plaque-hex {
@@ -364,78 +390,167 @@ import SearchCard from '../components/SearchCard.astro';
     padding: 0;
     border: 0;
     background: none;
-    color: var(--cream);
+    color: var(--rust);
     text-decoration: underline;
-    text-decoration-color: var(--brass);
+    text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
     cursor: pointer;
   }
 
-  .hint {
-    position: absolute;
-    left: 50%;
-    top: 22%;
-    translate: -50% 0;
-    width: min(100% - 2 * var(--gutter), 30rem);
-    padding: 0.7rem 1.1rem;
-    border-radius: 999px;
-    background: var(--scrim);
+  .text-button:hover {
+    color: var(--ink);
+  }
+
+  .controls {
+    margin-left: auto;
+    line-height: 1.3;
+  }
+
+  .controls-title {
+    margin-bottom: 0.4rem;
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step-0);
+  }
+
+  .controls :global(dl) {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: baseline;
+    gap: 0.35rem 0.75rem;
+    margin: 0;
+  }
+
+  .controls :global(dt) {
+    white-space: nowrap;
+  }
+
+  .controls :global(dd) {
+    margin: 0;
+    color: var(--faded);
+  }
+
+  .controls :global(kbd) {
+    display: inline-block;
+    min-width: 1.5em;
+    padding: 0.05rem 0.35rem;
+    border: 1px solid rgb(138 59 38 / 0.45);
+    border-bottom-width: 2px;
+    border-radius: 0.25rem;
+    background: #fbf4e3;
+    color: var(--rust);
+    font-family: var(--font-page);
+    font-size: 0.95em;
+    line-height: 1.3;
     text-align: center;
-    font-size: var(--step--1);
+  }
+
+  /* when the two groups can't sit side by side, the actions rise above the ways on */
+  .wander-bottom {
+    position: absolute;
+    left: var(--gutter);
+    right: var(--gutter);
+    bottom: max(var(--space-2), env(safe-area-inset-bottom));
+    display: flex;
+    flex-wrap: wrap-reverse;
+    /* wrap-reverse flips the cross axis, so this sits both groups on the bottom edge */
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.4rem;
+    pointer-events: none;
+  }
+
+  .wander-bottom > * {
+    pointer-events: auto;
   }
 
   .ways {
-    position: absolute;
-    left: var(--gutter);
-    bottom: max(var(--space-2), env(safe-area-inset-bottom));
     display: grid;
     grid-template-columns: repeat(2, auto);
     gap: 0.4rem;
   }
 
+  /* the landing book's buttons, set on the scene */
   .ways button,
   .round {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
     min-height: 2.75rem;
-    padding: 0 0.9rem;
-    border: 1px solid rgb(185 138 94 / 0.7);
-    border-radius: 999px;
-    background: var(--scrim);
-    color: var(--cream);
+    padding: 0 1rem;
+    border: 1px solid rgb(138 59 38 / 0.55);
+    border-radius: 0.45rem;
+    background: var(--parchment);
+    color: var(--rust);
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
     font-size: var(--step--1);
+    box-shadow: 0 12px 26px -12px rgb(0 0 0 / 0.65);
     cursor: pointer;
+    transition: background 200ms var(--ease-settle), border-color 200ms var(--ease-settle), color 200ms var(--ease-settle);
   }
 
   .ways button:hover,
   .round:hover {
-    border-color: var(--lamplight);
+    border-color: var(--rust);
+    background: #fbf4e3;
+    color: var(--ink);
   }
 
   .wander-actions {
-    position: absolute;
-    right: var(--gutter);
-    bottom: max(var(--space-2), env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.4rem;
+    margin-left: auto;
   }
 
+  @media (max-width: 24.9rem) {
+    .wander-actions {
+      flex-direction: row;
+    }
+  }
+
+  /* narrow screens: labels wrap so the three fit beside the ways on */
   .round {
-    width: 4.25rem;
-    height: 4.25rem;
-    padding: 0;
-    background: var(--night);
-    font-family: var(--font-display);
-    font-variation-settings: 'SOFT' 100;
+    flex-direction: column;
+    gap: 0;
+    width: 4.9rem;
+    min-height: 3.4rem;
+    padding: 0.3rem;
+    line-height: 1.15;
+  }
+
+  .round .quote-mark {
+    font-size: 1.6em;
+    line-height: 0.6;
+    translate: 0 0.15em;
   }
 
   .round-state {
-    display: block;
-    font-size: 0.85em;
-    color: var(--muted);
+    color: var(--faded);
   }
 
   .round[aria-pressed='true'] .round-state {
-    color: var(--lamplight);
+    color: var(--rust);
+    font-weight: 600;
+  }
+
+  @media (min-width: 40rem) {
+    .round {
+      flex-direction: row;
+      gap: 0.4rem;
+      width: auto;
+      min-width: 9rem;
+      min-height: 2.75rem;
+      padding: 0 1rem;
+    }
+
+    .round .quote-mark {
+      font-size: 1.9em;
+      line-height: 0;
+      translate: 0 0.22em;
+    }
   }
 
   .crosshair {
@@ -462,23 +577,8 @@ import SearchCard from '../components/SearchCard.astro';
     background: var(--lamplight);
   }
 
-  .crosshair[hidden],
-  .aim-note[hidden] {
+  .crosshair[hidden] {
     display: none;
-  }
-
-  .aim-note {
-    position: absolute;
-    left: 50%;
-    top: max(var(--space-2), env(safe-area-inset-top));
-    translate: -50% 0;
-    padding: 0.45rem 1rem;
-    border-radius: 999px;
-    background: var(--scrim);
-    font-size: var(--step--1);
-    color: var(--muted);
-    white-space: nowrap;
-    pointer-events: none;
   }
 
   .spine-label {

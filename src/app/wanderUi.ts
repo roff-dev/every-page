@@ -15,14 +15,34 @@ export interface WanderActions {
   share(): void;
 }
 
-const HINT_KEY = 'every-page:wander-hint-2';
+/** Each control as keys (shown as key caps) or words, and what it does */
+type Control = [keys: string[] | string, does: string];
+
+const CONTROLS: Record<'touch' | 'aiming' | 'cursor', Control[]> = {
+  touch: [
+    ['Drag', 'Look around'],
+    ['Tap the floor', 'Walk there'],
+    ['Tap a book', 'Read it'],
+  ],
+  aiming: [
+    ['Mouse', 'Look around'],
+    [['W', 'A', 'S', 'D'], 'Walk'],
+    ['Click', 'Go there, or open a book'],
+    ['Right click', 'Free the cursor'],
+  ],
+  cursor: [
+    ['Drag', 'Look around'],
+    [['W', 'A', 'S', 'D'], 'Walk'],
+    ['Click', 'Go there, or open a book'],
+    ['Right click', 'Look with the mouse'],
+  ],
+};
 
 export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
   const place = root.querySelector<HTMLElement>('[data-place]')!;
-  const hint = root.querySelector<HTMLElement>('[data-hint]')!;
+  const controls = root.querySelector<HTMLElement>('[data-controls]')!;
   const label = root.querySelector<HTMLElement>('[data-spine]')!;
   const crosshair = root.querySelector<HTMLElement>('[data-crosshair]')!;
-  const aimNote = root.querySelector<HTMLElement>('[data-aim-note]')!;
   root.querySelectorAll<HTMLButtonElement>('[data-way]').forEach((b) =>
     b.addEventListener('click', () => actions.go(b.dataset.way as 'east' | 'west' | 'up' | 'down')),
   );
@@ -32,23 +52,21 @@ export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
   const shareLabel = root.querySelector<HTMLElement>('[data-share-place] span')!;
   let shareReset = 0;
 
-  const coarse = matchMedia('(pointer: coarse)').matches;
-  hint.textContent = coarse
-    ? 'Drag to look around. Tap the floor to walk there, or a book to read it.'
-    : 'Move the mouse to look around. Click to walk there or open a book, or walk with W A S D. Right click frees the cursor.';
+  const showControls = (mode: keyof typeof CONTROLS) => {
+    controls.replaceChildren(
+      ...CONTROLS[mode].flatMap(([keys, does]) => {
+        const dt = document.createElement('dt');
+        if (Array.isArray(keys)) dt.append(...keys.flatMap((k, i) => [...(i ? [' '] : []), Object.assign(document.createElement('kbd'), { textContent: k })]));
+        else dt.textContent = keys;
+        return [dt, Object.assign(document.createElement('dd'), { textContent: does })];
+      }),
+    );
+  };
+  showControls(matchMedia('(pointer: coarse)').matches ? 'touch' : 'cursor');
 
   return {
     show() {
       document.body.dataset.state = 'wander';
-      let seen = false;
-      try {
-        seen = localStorage.getItem(HINT_KEY) === '1';
-        localStorage.setItem(HINT_KEY, '1');
-      } catch {
-        // storage can be unavailable; the hint just shows again
-      }
-      hint.hidden = seen;
-      if (!seen) setTimeout(() => (hint.hidden = true), 7000);
       // coming back from a closed book (or a skipped journey) leaves focus nowhere useful
       const active = document.activeElement;
       if (!active || active === document.body || active.closest('.reader')) {
@@ -71,7 +89,7 @@ export function wanderUi(root: HTMLElement, actions: WanderActions): WanderUi {
     },
     aiming(on) {
       crosshair.hidden = !on;
-      aimNote.hidden = on;
+      showControls(on ? 'aiming' : 'cursor');
     },
     linkCopied() {
       shareLabel.textContent = 'Link copied';
