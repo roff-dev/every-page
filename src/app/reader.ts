@@ -14,6 +14,8 @@ export interface ReaderOptions {
   onMove(offset: bigint): void;
   onElsewhere: (() => void) | null;
   onClose(): void;
+  /** Where the marked words come from, when they are a known line */
+  credit?: string | null;
 }
 
 export interface Reader {
@@ -202,6 +204,7 @@ export function openReader(opts: ReaderOptions): Reader {
       field('Shelf', String(loc.shelf + 1)),
       field('Volume', String(loc.volume + 1)),
     );
+    if (opts.credit && index === start) plate.append(field('From', opts.credit, 'field credit-field'));
   }
 
   // keyboard: arrows turn pages, shift+arrows change volume, Escape closes

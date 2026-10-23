@@ -39,7 +39,8 @@ function scientific(n: bigint, exponentShift = 0): string {
 
 export interface JourneyUi {
   /** short: a shared link's arrival, with no flight to narrate */
-  begin(from: bigint, to: Location, short?: boolean): JourneyEvents;
+  /** `known`: the page holds a known line rather than the visitor's own words */
+  begin(from: bigint, to: Location, short?: boolean, known?: boolean): JourneyEvents;
   end(): void;
 }
 
@@ -67,13 +68,13 @@ export function journeyUi(root: HTMLElement, onSkip: () => void, onContinue: () 
   };
 
   return {
-    begin(from, to, short = false) {
+    begin(from, to, short = false, known = false) {
       const { floors, galleries } = distance(from, to.hexagon);
       const floorDigits = (floors < 0n ? -floors : floors).toString().length;
       const direction = floors < 0n ? 'down' : 'up';
       document.body.dataset.state = 'journey';
       skip.hidden = false;
-      if (!short) say('Every page that could be written is already here. Yours is far.');
+      if (!short) say(`Every page that could be written is already here. ${known ? 'This one' : 'Yours'} is far.`);
       let lastShift = -1;
       return {
         phase(phase) {

@@ -76,6 +76,17 @@
   flex-basis: 100%;
 }
 
+.plate .credit-field {
+  flex-basis: 100%;
+}
+
+.plate .credit-field dd {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 100;
+  font-style: italic;
+  color: var(--lamplight);
+}
+
 .plate .hex {
   font-family: var(--font-page);
 }

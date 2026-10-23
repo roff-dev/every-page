@@ -20,7 +20,7 @@ import { site } from '../site';
     </header>
 
     <SearchCard>
-      <button class="random" type="button" data-random>Take me to a random volume</button>
+      <button class="random" type="button" data-random>Take me to a famous line</button>
     </SearchCard>
   </main>
 </Base>
@@ -28,6 +28,7 @@ import { site } from '../site';
 <script>
   import { searchCard } from '../app/searchCard';
   import { formatLink } from '../engine/links';
+  import { randomLine } from '../app/lines';
 
   // the library itself opens whatever link it's handed
   const go = (hash: string) => location.assign('/' + hash);
@@ -35,8 +36,8 @@ import { site } from '../site';
     go(formatLink({ anchor: { kind: 'query', text, variant: 0 }, offset: 0n })),
   );
   document.querySelector('[data-random]')!.addEventListener('click', () => {
-    const [hi, lo] = crypto.getRandomValues(new Uint32Array(2));
-    go(formatLink({ anchor: { kind: 'random', seed: (BigInt(hi!) << 32n) | BigInt(lo!) }, offset: 0n }));
+    const variant = crypto.getRandomValues(new Uint32Array(1))[0]! % 1_000_000;
+    go(formatLink({ anchor: { kind: 'query', text: randomLine(), variant }, offset: 0n }));
   });
 </script>
 

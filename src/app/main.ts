@@ -2,6 +2,7 @@ import { searchCard } from './searchCard';
 import { catalogue } from './catalogue';
 import { journeyUi, targetFor } from './journeyUi';
 import { wanderUi } from './wanderUi';
+import { creditFor, randomLine } from './lines';
 import { routeCard } from './routeCard';
 import { formatLink, parseLink, type Anchor, type Link, type Move } from '../engine/links';
 import { exists, fromIndex, neighbour, toIndex, type Location } from '../engine/location';
@@ -40,11 +41,6 @@ interface Position {
   hexagon: bigint;
   /** The scene's whole-room coordinates of the anchor's hexagon */
   room: { x: number; y: number };
-}
-
-function randomSeed() {
-  const words = crypto.getRandomValues(new Uint32Array(2));
-  return (BigInt(words[0]!) << 32n) | BigInt(words[1]!);
 }
 
 export function boot() {
@@ -139,7 +135,7 @@ export function boot() {
     return { move: book ? { east, up, book } : { east, up }, hexagon: neighbour(p.hexagon, east, up) };
   }
 
-  async function read(index: bigint, link: (offset: bigint) => string, highlight: { offset: number; length: number } | null, elsewhere: (() => void) | null) {
+  async function read(index: bigint, link: (offset: bigint) => string, highlight: { offset: number; length: number } | null, elsewhere: (() => void) | null, credit: string | null = null) {
     const { openReader } = await import('./reader');
     history.replaceState(null, '', link(0n));
     document.body.dataset.state = 'reading';
@@ -147,6 +143,7 @@ export function boot() {
     reading = openReader({
       index,
       highlight,
+      credit: highlight && credit,
       onMove: (offset) => history.replaceState(null, '', link(offset)),
       onElsewhere: elsewhere && (() => {
         reading?.close();
@@ -188,13 +185,14 @@ export function boot() {
     const s = await sceneReady;
     reading?.close();
     const location = fromIndex(index);
+    const credit = anchor.kind === 'query' ? creditFor(anchor.text) : null;
     if (!s) await route.show(location);
     else {
       s.release();
       position ??= await landing(s);
       const here = moveFrom(position, s.room()).hexagon;
       const target = targetFor(location);
-      await s.journey(short ? { ...target, rooms: 1, floors: 0 } : target, withSound(journey.begin(here, location, short)), short);
+      await s.journey(short ? { ...target, rooms: 1, floors: 0 } : target, withSound(journey.begin(here, location, short, credit !== null)), short);
       const room = s.room();
       position = move
         ? { anchor, hexagon: neighbour(location.hexagon, -move.east, -move.up), room: { x: room.x - move.east, y: room.y - move.up } }
@@ -202,7 +200,7 @@ export function boot() {
       await s.reveal();
       journey.end();
     }
-    await read(index, (o) => formatLink({ anchor, offset: offset + o, ...(move ? { move } : {}) }), highlight, elsewhere);
+    await read(index, (o) => formatLink({ anchor, offset: offset + o, ...(move ? { move } : {}) }), highlight, elsewhere, credit);
   }
 
   /** Open a shared link: find its anchor, follow its move and page offset, and arrive there. */
@@ -253,11 +251,9 @@ export function boot() {
     }
   }
 
+  /** A known line, found on a shelf chosen at random from all the places it is written. */
   async function openRandom() {
-    const seed = randomSeed();
-    const anchor: Anchor = { kind: 'random', seed };
-    history.replaceState(null, '', formatLink({ anchor, offset: 0n }));
-    await travel(anchor, await catalogue.randomIndex(seed), null, null);
+    await find(randomLine(), crypto.getRandomValues(new Uint32Array(1))[0]! % 1_000_000);
   }
 
   async function startWandering() {

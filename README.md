@@ -2,7 +2,7 @@
 
 ![Looking down a lamplit shaft of hexagonal library floors, with the title Every Page](public/og.png)
 
-A lamplit, walkable version of Borges's Library of Babel. Every possible page of 3,200 characters is on a shelf somewhere in it, at exactly one place. Type anything, and you fly down the air shaft, follow a trail of light along the gallery to one book, and it opens to the page where your words have always been. You can also take a random volume off a shelf, wander the galleries, and share a link to any page or place.
+A lamplit, walkable version of Borges's Library of Babel. Every possible page of 3,200 characters is on a shelf somewhere in it, at exactly one place. Type anything, and you fly down the air shaft, follow a trail of light along the gallery to one book, and it opens to the page where your words have always been. You can also ask it for a famous line, which it finds on one of the countless shelves where that line is written, wander the galleries, and share a link to any page or place.
 
 ## Why I built this
 
@@ -35,6 +35,7 @@ npm run preview   # serves the build
 ## Credits and licences
 
 - The library is Jorge Luis Borges's, from "La biblioteca de Babel" (1941). The quote on the How it works page is from James E. Irby's translation.
+- The famous lines all come from public-domain works, credited in the reader where they're found.
 - [libraryofbabel.info](https://libraryofbabel.info) by Jonathan Basile, the searchable library this one owes its idea of search to.
 - Typefaces, all under the SIL Open Font License 1.1, self-hosted through [Fontsource](https://fontsource.org): Fraunces (Undercase Type), Newsreader (Production Type) and Courier Prime (Alan Dague-Greene).
 - Sounds: footsteps from Kenney's "Impact Sounds" and book sounds from Kenney's "RPG Audio", both CC0 ([kenney.nl](https://kenney.nl)). The room tone and the chime are synthesised in the browser.
