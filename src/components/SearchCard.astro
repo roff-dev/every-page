@@ -1,7 +1,7 @@
 ---
 /**
  * An open book to write in: the search field with its live "will read as" feedback.
- * Extra actions go in the default slot; `spread` opens it across two pages on wide screens,
+ * Other ways in go in the default slot, along the foot of the page; `spread` opens it across two pages on wide screens,
  * with anything in the "verso" slot under the question on the left-hand page.
  */
 interface Props {
@@ -33,9 +33,11 @@ const { spread = false } = Astro.props;
       The catalogue didn't answer. <button class="random" type="button" data-retry>Try again</button>
     </p>
     <div class="card-actions">
-      <button class="find" type="submit">Find it</button>
-      <slot />
       <span class="counter" data-counter hidden></span>
+      <button class="find" type="submit">Find it</button>
+    </div>
+    <div class="card-more">
+      <slot />
     </div>
   </div>
 </form>
@@ -135,9 +137,8 @@ const { spread = false } = Astro.props;
       min-height: 8em;
     }
 
-    .spread .card-actions {
+    .spread .card-more {
       margin-top: auto;
-      padding-bottom: 0;
     }
   }
 
@@ -213,11 +214,23 @@ const { spread = false } = Astro.props;
   .trouble .random {
     min-height: 2.75rem;
     margin-left: 0.3rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rust);
     font-size: inherit;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+  }
+
+  .trouble .random:hover {
+    color: var(--ink);
   }
 
   .counter {
-    margin-left: auto;
+    margin-right: auto;
     font-size: var(--step--1);
     font-variant-numeric: tabular-nums;
     color: var(--faded);
@@ -227,9 +240,21 @@ const { spread = false } = Astro.props;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: var(--space-1) var(--space-3);
     margin-top: var(--space-2);
-    padding-bottom: var(--space-3);
+  }
+
+  /* the other ways in, along the foot of the page */
+  .card-more {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-1);
+    margin-top: var(--space-3);
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-1);
+    border-top: 1px solid rgb(138 59 38 / 0.2);
   }
 
   .find {
@@ -261,19 +286,45 @@ const { spread = false } = Astro.props;
     cursor: default;
   }
 
-  .card :global(.random) {
+  .card-more :global(.more) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     min-height: 2.75rem;
-    padding: 0;
-    border: 0;
-    background: none;
+    padding: 0 1.1rem 0 0.9rem;
+    border: 1px solid rgb(138 59 38 / 0.55);
+    border-radius: 999px;
+    background: rgb(138 59 38 / 0.06);
     color: var(--rust);
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.2em;
+    font-family: var(--font-display);
+    font-variation-settings: 'SOFT' 100;
+    font-size: var(--step--1);
     cursor: pointer;
+    transition: background 200ms var(--ease-settle), border-color 200ms var(--ease-settle), color 200ms var(--ease-settle);
   }
 
-  .card :global(.random:hover) {
+  .card-more :global(.more:hover) {
+    border-color: var(--rust);
+    background: rgb(138 59 38 / 0.12);
     color: var(--ink);
+  }
+
+  .card-more :global(.more svg) {
+    width: 1.45rem;
+    height: 1.45rem;
+    flex: none;
+    stroke-width: 1.9;
+  }
+
+  /* when the two wrap onto their own rows, the second keeps to the right */
+  .card-more > :global(:last-child:not(:first-child)) {
+    margin-left: auto;
+  }
+
+  /* an opening quotation mark, set large */
+  .card-more :global(.quote-mark) {
+    font-size: 1.9em;
+    line-height: 0;
+    translate: 0 0.22em;
   }
 </style>
